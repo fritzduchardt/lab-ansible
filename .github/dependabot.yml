@@ -4,11 +4,17 @@
 # https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
 
 version: 2
-updates:                                                          
-  - package-ecosystem: "make"                                                 
-    directory: "/"                                                            
-    schedule:                                                                 
-      interval: "daily"                                                       
-    commit-message:                                                           
-      prefix: "fix"                                                           
-    open-pull-requests-limit: 5 
+updates:
+  - package-ecosystem: "make"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    commit-message:
+      prefix: "fix"
+    open-pull-requests-limit: 5
+  - package-ecosystem: "ansible"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    commit-message:
+      prefix: "fix"
