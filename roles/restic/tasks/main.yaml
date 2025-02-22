@@ -1,0 +1,82 @@
+---
+- name: Check restic present
+  ansible.builtin.stat:
+    path: /usr/local/bin/restic-{{ restic.version }}
+  register: restic_bin
+
+- name: Install restic binary
+  become: true
+  changed_when: true
+  ansible.builtin.shell:
+    executable: /usr/bin/bash
+    cmd: |
+      curl -OL https://github.com/restic/restic/releases/download/v{{ restic.version }}/restic_{{ restic.version }}_linux_arm.bz2
+      bunzip2 restic_{{ restic.version }}_linux_arm.bz2
+      install -m 555 restic_{{ restic.version }}_linux_arm /usr/local/bin/restic-{{ restic.version }}
+      ln -sf /usr/local/bin/restic-{{ restic.version }} /usr/local/bin/restic
+      rm restic_{{ restic.version }}_linux_arm
+  when: not restic_bin.stat.exists
+
+- name: Check restic repository
+  changed_when: false
+  environment:
+    AWS_ACCESS_KEY_ID: "{{ restic.aws_access_key_id }}"
+    AWS_SECRET_ACCESS_KEY: "{{ restic.aws_secret_access_key }}"
+    RESTIC_PASSWORD: "{{ restic.password }}"
+  ansible.builtin.shell:
+    executable: /usr/bin/bash
+    cmd: |
+      restic -r "s3:https://{{ restic.s3_url }}/{{ ansible_hostname }}" check
+  register: restic_check
+  ignore_errors: true
+
+- name: Initialize restic repository
+  changed_when: true
+  environment:
+    AWS_ACCESS_KEY_ID: "{{ restic.aws_access_key_id }}"
+    AWS_SECRET_ACCESS_KEY: "{{ restic.aws_secret_access_key }}"
+    RESTIC_PASSWORD: "{{ restic.password }}"
+  ansible.builtin.shell:
+    executable: /usr/bin/bash
+    cmd: |
+      restic -r "s3:https://{{ restic.s3_url }}/{{ ansible_hostname }}" init
+  when: restic_check.rc != 0
+
+- name: Create restic log directory
+  become: true
+  ansible.builtin.file:
+    path: /var/log/restic
+    state: directory
+    mode: '0755'
+    owner: root
+    group: root
+
+- name: Create scripts directory
+  become: true
+  ansible.builtin.file:
+    path: /scripts
+    state: directory
+    mode: '0755'
+    owner: root
+    group: root
+
+- name: Install restic script
+  become: true
+  ansible.builtin.template:
+    dest: /scripts/restic.sh
+    src: restic.sh.j2
+    mode: "0755"
+    owner: root
+    group: root
+
+- name: Install backups
+  become: true
+  changed_when: true
+  ansible.builtin.cron:
+    name: "Backup for {{ item.name }}"
+    hour: "{{ item.hour }}"
+    minute: "0"
+    user: "root"
+    job: /scripts/restic.sh "{{ restic.s3_url }}" "{{ ansible_hostname }}" "{{ item.path }}" "{{ restic.aws_access_key_id }}" "{{ restic.aws_secret_access_key }}" "{{ restic.password }}" >> /var/log/restic/{{ item.name }}.log 2>&1 # noqa: yaml[line-length]
+    state: present
+  loop: "{{ backups }}"

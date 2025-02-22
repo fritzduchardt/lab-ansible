@@ -1,0 +1,59 @@
+all:
+  hosts:
+    friclu-1:
+      ansible_host: 192.168.0.21
+      ansible_user: fritz
+      ansible_ssh_private_key_file: /root/.ssh/id_rsa
+      backups:
+        - name: immich
+          path: /volumes/immich
+          hour: 21
+        - name: linkding
+          path: /volumes/linkding
+          hour: 22
+        - name: syncthing
+          path: /volumes/syncthing
+          hour: 23
+        - name: home-assistant
+          path: /volumes/home-assistant
+          hour: 24
+    friclu-2:
+      ansible_host: 192.168.0.23
+      ansible_user: fritz
+      ansible_ssh_private_key_file: /root/.ssh/id_rsa
+    friclu-3:
+      ansible_host: 192.168.0.19
+      ansible_user: fritz
+      ansible_ssh_private_key_file: /root/.ssh/id_rsa
+  vars:
+    ansible_ssh_common_args: "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+
+kube_control_plane:
+  hosts:
+    friclu-1:
+
+restic:
+  hosts:
+    friclu-1:
+
+duckdns:
+  hosts:
+    friclu-1:
+
+etcd:
+  hosts:
+    friclu-1:
+
+kube_node:
+  hosts:
+    friclu-1:
+    friclu-2:
+    friclu-3:
+
+calico_rr:
+  hosts: {}
+
+k8s_cluster:
+  children:
+    kube_control_plane:
+    kube_node:

@@ -1,0 +1,27 @@
+---
+
+- name: Create duckdns log directory
+  become: true
+  ansible.builtin.file:
+    path: /var/log/duckdns
+    state: directory
+    mode: '0755'
+    owner: root
+    group: root
+
+- name: Install duckdns script
+  become: true
+  ansible.builtin.template:
+    dest: /scripts/duckdns.sh
+    src: duckdns.sh.j2
+    mode: "0755"
+    owner: root
+
+- name: Configure crontab to run a script every 5 minutes
+  become: true
+  ansible.builtin.cron:
+    name: "Run duckdns every 5 mins"
+    minute: "*/5"
+    user: "root"
+    job: "/scripts/duckdns.sh >> /var/log/duckdns/duckdns.log 2>&1"
+    state: present

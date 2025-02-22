@@ -1,0 +1,4 @@
+- name: Install packages for restic
+  hosts: "restic"
+  roles:
+    - role: restic

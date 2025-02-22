@@ -1,0 +1,22 @@
+#!/usr/bin/bash
+
+url="${1:?provide s3 url}"
+bucket_name="${2:?provide bucket name}"
+bucket_dir="${3:?provide bucket dir}"
+key_id="${4:?provide aws access key id}"
+secret="${5:?provide aws access secret key}"
+password="${6:?provide restic password}"
+
+export AWS_ACCESS_KEY_ID="$key_id"
+export AWS_SECRET_ACCESS_KEY="$secret"
+export RESTIC_PASSWORD="$password"
+
+/usr/local/bin/restic -r "s3:https://$url/$bucket_name" backup --skip-if-unchanged "$bucket_dir"
+cat <<EOF | curl --data-binary @- pushgateway-prometheus-pushgateway.pushgateway:9091/metrics/job/backup
+restic_backup_success{dir="$bucket_dir"} $?
+EOF
+
+/usr/local/bin/restic -r "s3:https://$url/$bucket_name" forget --keep-daily 7 --keep-monthly 1 --keep-yearly 1 --prune
+cat <<EOF | curl --data-binary @- pushgateway-prometheus-pushgateway.pushgateway:9091/metrics/job/backup
+restic_backup_housekeeping_success{dir="$bucket_dir"} $?
+EOF

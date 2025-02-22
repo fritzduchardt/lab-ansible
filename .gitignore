@@ -1,0 +1,8 @@
+/.idea
+*.iml
+
+/inventory/artifacts/*
+/inventory/credentials/*
+
+/.ansible-lint
+/.ansible-password
