@@ -6,11 +6,11 @@
   "regexManagers": [
     {
       "fileMatch": ["^Makefile$"],
-      // #! renovate: datasource=github-release depName="jkroepke/helm-secrets"
+      // #! renovate: datasource=github-releases depName="jkroepke/helm-secrets"
       // k8s_version = 1.2.3
       matchStrings: [
         "#!\\s+renovate:\\s+datasource=(?<datasource>github-release)\\s+depName=\"(?<depName>\\S+)\"\\n.*_version\\s+=\\s+(?<currentValue>\\S+)"
       ]
     }
-  ]
+  ],
 }
