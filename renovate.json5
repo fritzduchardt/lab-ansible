@@ -9,7 +9,7 @@
       // #! renovate: datasource=github-releases depName="jkroepke/helm-secrets"
       // k8s_version = 1.2.3
       matchStrings: [
-        "#!\\s+renovate:\\s+datasource=(?<datasource>github-release)\\s+depName=\"(?<depName>\\S+)\"\\n.*_version\\s+=\\s+(?<currentValue>\\S+)"
+        "#!\\s+renovate:\\s+datasource=(?<datasource>github-releases)\\s+depName=\"(?<depName>\\S+)\"\\n.*_version\\s+=\\s+(?<currentValue>\\S+)"
       ]
     }
   ],
