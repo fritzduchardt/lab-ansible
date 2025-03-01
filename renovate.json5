@@ -1,0 +1,16 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended"
+  ],
+  "regexManagers": [
+    {
+      "fileMatch": ["^Makefile$"],
+      // #! renovate: datasource=github-release depName="jkroepke/helm-secrets"
+      // k8s_version = 1.2.3
+      matchStrings: [
+        "#!\\s+renovate:\\s+datasource=(?<datasource>github-release)\\s+depName:\\s+['\"]?(?<depName>\\S+)\\n.*_version = (?<currentValue>)"
+      ]
+    }
+  ]
+}

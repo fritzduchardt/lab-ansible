@@ -10,6 +10,8 @@ redirect() {
     local type="${4:-tcp}"
     sudo iptables -t nat -A OUTPUT -p "$type" -d "$ip" --dport "$source_port" -j DNAT --to-destination "$ip:$target_port"
     return 0
+  else
+    sudo iptables-restore < /etc/iptables/rules.v4
   fi
   return 1
 }
