@@ -2,9 +2,9 @@ cluster = m5-cluster
 working_dir = $(shell pwd)
 home_dir = $(HOME)
 cmd = ansible-playbook -i /work/inventory/$(cluster).ini --become
-#! renovate: datasource=github-releases depName="kubernetes/kubernetes"
+# renovate: datasource=github-releases depName="kubernetes/kubernetes"
 k8s_version = v1.30.4
-#! renovate: datasource=github-releases depName="kubernetes-sigs/kubespray"
+# renovate: datasource=github-releases depName="kubernetes-sigs/kubespray"
 kubespray_version = v2.26.0
 
 create-cluster:
