@@ -3,7 +3,7 @@ working_dir = $(shell pwd)
 home_dir = $(HOME)
 cmd = ansible-playbook -i /work/inventory/$(cluster).ini --become
 # renovate: datasource=github-releases depName="kubernetes/kubernetes"
-k8s_version = v1.30.4
+k8s_version = v1.32.2
 # renovate: datasource=github-releases depName="kubernetes-sigs/kubespray"
 kubespray_version = v2.27.0
 
