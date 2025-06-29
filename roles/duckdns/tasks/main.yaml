@@ -20,8 +20,8 @@
 - name: Configure crontab to run a script every 5 minutes
   become: true
   ansible.builtin.cron:
-    name: "Run duckdns every 5 mins"
-    minute: "*/5"
+    name: "Run duckdns every 2 mins"
+    minute: "*/2"
     user: "root"
     job: "/scripts/duckdns.sh >> /var/log/duckdns/duckdns.log 2>&1"
     state: present
