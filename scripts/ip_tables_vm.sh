@@ -85,9 +85,9 @@ flush_rules() {
   #   -D PREROUTING : delete a rule from the PREROUTING chain
   #   -p tcp : match TCP protocol
   #   -m multiport --dports 80,443 : match destination ports 80 and 443
-  #   -i ! "$tailscale_if" : match packets incoming on any interface that is NOT tailscale_if
+  #   "!" -i "$tailscale_if" : match packets incoming on any interface that is NOT tailscale_if
   #   -j DNAT --to-destination "$target_ip" : jump to DNAT target and set destination address to target_ip
-  run_cmd iptables -t nat -D PREROUTING -p tcp -m multiport --dports 80,443 -i "!" "$tailscale_if" -j DNAT --to-destination "$target_ip" 2>/dev/null || true
+  run_cmd iptables -t nat -D PREROUTING -p tcp -m multiport --dports 80,443 "!" -i "$tailscale_if" -j DNAT --to-destination "$target_ip" 2>/dev/null || true
 
   # iptables: delete SNAT POSTROUTING rule to set source to local tailscale ip for outgoing tailscale packets
   # Command details:
@@ -99,16 +99,16 @@ flush_rules() {
   # iptables: delete FORWARD rule allowing packets from non-tailscale to tailscale for matched ports
   # Command details:
   #   -D FORWARD : delete a rule from FORWARD chain
-  #   -i ! "$tailscale_if" -o "$tailscale_if" : match packets in on non-tailscale and out on tailscale
+  #   "!" -i "$tailscale_if" -o "$tailscale_if" : match packets in on non-tailscale and out on tailscale
   #   -p tcp -m multiport --dports 80,443 : match tcp dst ports 80 and 443
   #   -m conntrack --ctstate NEW,ESTABLISHED,RELATED : match connection states NEW, ESTABLISHED, RELATED
   #   -j ACCEPT : accept matched packets
-  run_cmd iptables -D FORWARD -i "!" "$tailscale_if" -o "$tailscale_if" -p tcp -m multiport --dports 80,443 -m conntrack --ctstate NEW,ESTABLISHED,RELATED -j ACCEPT 2>/dev/null || true
+  run_cmd iptables -D FORWARD "!" -i "$tailscale_if" -o "$tailscale_if" -p tcp -m multiport --dports 80,443 -m conntrack --ctstate NEW,ESTABLISHED,RELATED -j ACCEPT 2>/dev/null || true
 
   # iptables: delete FORWARD rule allowing established/related returning traffic from tailscale to non-tailscale
   # Command details:
   #   -D FORWARD : delete a rule from FORWARD chain
-  #   -i "$tailscale_if" -o ! "$tailscale_if" : match packets in on tailscale and out on non-tailscale
+  #   -i "$tailscale_if" "!" -o "$tailscale_if" : match packets in on tailscale and out on non-tailscale
   #   -m conntrack --ctstate ESTABLISHED,RELATED : only allow established or related connections back
   #   -j ACCEPT : accept matched packets
   run_cmd iptables -D FORWARD -i "$tailscale_if" "!" -o "$tailscale_if" -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT 2>/dev/null || true
@@ -129,7 +129,7 @@ add_rules() {
   #   -t nat -A PREROUTING : append a rule to PREROUTING chain in nat table
   #   -p tcp : match TCP protocol
   #   -m multiport --dports 80,443 : match destination ports 80 and 443
-  #   -i ! "$tailscale_if" : match packets incoming on any interface that is NOT tailscale_if
+  #   "!" -i "$tailscale_if" : match packets incoming on any interface that is NOT tailscale_if
   #   -j DNAT --to-destination "$target_ip" : rewrite destination to target_ip
   run_cmd iptables -t nat -A PREROUTING -p tcp -m multiport --dports 80,443 "!" -i "$tailscale_if" -j DNAT --to-destination "$target_ip"
 
@@ -143,7 +143,7 @@ add_rules() {
   # iptables: allow forwarding of new/established/related TCP connections from non-tailscale to tailscale (ports 80/443)
   # Command details:
   #   -A FORWARD : append rule to FORWARD chain
-  #   -i ! "$tailscale_if" -o "$tailscale_if" : packets from non-tailscale in to tailscale out
+  #   "!" -i "$tailscale_if" -o "$tailscale_if" : packets from non-tailscale in to tailscale out
   #   -p tcp -m multiport --dports 80,443 : match tcp dst ports 80 and 443
   #   -m conntrack --ctstate NEW,ESTABLISHED,RELATED : match connection states NEW, ESTABLISHED, RELATED
   #   -j ACCEPT : accept matched packets
@@ -152,7 +152,7 @@ add_rules() {
   # iptables: allow established/related forwarding from tailscale to non-tailscale
   # Command details:
   #   -A FORWARD : append rule to FORWARD chain
-  #   -i "$tailscale_if" -o ! "$tailscale_if" : packets from tailscale in to non-tailscale out
+  #   -i "$tailscale_if" "!" -o "$tailscale_if" : packets from tailscale in to non-tailscale out
   #   -m conntrack --ctstate ESTABLISHED,RELATED : only allow established or related connections back
   #   -j ACCEPT : accept matched packets
   run_cmd iptables -A FORWARD -i "$tailscale_if" "!" -o "$tailscale_if" -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
