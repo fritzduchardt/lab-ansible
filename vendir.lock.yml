@@ -1,0 +1,9 @@
+apiVersion: vendir.k14s.io/v1alpha1
+directories:
+- contents:
+  - git:
+      commitTitle: 'docs: add license'
+      sha: f4a9a7a3d786794aae8e84cae9973205809747ae
+    path: .
+  path: lib
+kind: LockConfig
