@@ -1,0 +1,4 @@
+- name: Install packages for longhorn
+  hosts: "friclu-1"
+  roles:
+    - role: tailscale

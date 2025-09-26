@@ -1,0 +1,14 @@
+[Unit]
+Description=Load iptables rules for Tailscale forwarding
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+# Load iptables rules from /etc/iptables/iptables-tailscale.rules
+ExecStart=/sbin/iptables-restore /etc/iptables/iptables-tailscale.rules
+ExecReload=/sbin/iptables-restore /etc/iptables/iptables-tailscale.rules
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

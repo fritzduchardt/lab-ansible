@@ -1,0 +1,36 @@
+---
+- name: Install socat package
+  become: true
+  ansible.builtin.package:
+    name: socat
+    state: latest
+
+- name: Deploy socat systemd unit for each port
+  become: true
+  ansible.builtin.template:
+    src: socat@.service.j2
+    dest: /etc/systemd/system/socat@{{ item }}.service
+    mode: '0644'
+  loop: "{{ socat_ports }}"
+  notify:
+    - Reload systemd daemon
+
+- name: Enable and start socat service for each port
+  become: true
+  ansible.builtin.systemd:
+    name: "socat@{{ item }}"
+    enabled: true
+    state: started
+  loop: "{{ socat_ports }}"
+
+- name: Add iptables INPUT rule to allow traffic to listening port
+  become: true
+  # Add a rule to accept incoming TCP traffic to each listening port.
+  # We run the iptables command and ignore failures (e.g., if the rule already exists).
+  ansible.builtin.shell: |
+    iptables -I INPUT -p tcp --dport {{ item }} -j ACCEPT || true
+  loop: "{{ socat_ports }}"
+  failed_when: false
+
+
+

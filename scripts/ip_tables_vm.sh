@@ -69,7 +69,7 @@ apply_sysctl() {
   log::debug "Applied sysctl config to enable ip forwarding on remote host $ssh_host"
 }
 
-# Conceptual: Remove existing NAT and FORWARD rules on the remote host that target the tailscale interface
+# Conceptual: Remove existing NAT, FORWARD, and INPUT rules on the remote host that target the tailscale interface
 # and the configured target IP. This ensures idempotency when removing rules.
 # The rules managed here are specific to TCP ports 80 and 443.
 flush_rules() {
@@ -112,11 +112,19 @@ flush_rules() {
   #   -m conntrack --ctstate ESTABLISHED,RELATED : only allow established or related connections back
   #   -j ACCEPT : accept matched packets
   run_cmd iptables -D FORWARD -i "$tailscale_if" "!" -o "$tailscale_if" -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT 2>/dev/null || true
+
+  # iptables: delete INPUT rule allowing incoming TCP ports 80 and 443 to the VM
+  # Command details:
+  #   -D INPUT : delete a rule from INPUT chain
+  #   -p tcp : match TCP protocol
+  #   -m multiport --dports 80,443 : match destination ports 80 and 443
+  #   -j ACCEPT : accept matched packets
+  run_cmd iptables -D INPUT -p tcp -m multiport --dports 80,443 -j ACCEPT 2>/dev/null || true
 }
 
-# Conceptual: Create NAT and FORWARD rules on the remote host so TCP traffic destined to ports 80/443
+# Conceptual: Create NAT, FORWARD, and INPUT rules on the remote host so TCP traffic destined to ports 80/443
 # coming from non-tailscale interfaces is DNAT'd to the target and routed out via the tailscale interface.
-# Use SNAT to make sure reply packets return properly.
+# Use SNAT to make sure reply packets return properly. Also open ports 80 and 443 on the VM to public.
 add_rules() {
   local tailscale_if="$1"
   local target_ip="$2"
@@ -156,6 +164,14 @@ add_rules() {
   #   -m conntrack --ctstate ESTABLISHED,RELATED : only allow established or related connections back
   #   -j ACCEPT : accept matched packets
   run_cmd iptables -A FORWARD -i "$tailscale_if" "!" -o "$tailscale_if" -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+
+  # iptables: allow incoming TCP connections on ports 80 and 443 to the VM itself
+  # Command details:
+  #   -A INPUT : append a rule to INPUT chain
+  #   -p tcp : match TCP protocol
+  #   -m multiport --dports 80,443 : match destination ports 80 and 443
+  #   -j ACCEPT : accept matched packets
+  run_cmd iptables -A INPUT -p tcp -m multiport --dports 80,443 -j ACCEPT
 }
 
 main() {

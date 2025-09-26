@@ -1,4 +1,3 @@
-FILENAME: tools/tailscale-forward.sh
 #!/usr/bin/env bash
 set -eo pipefail
 
@@ -57,46 +56,34 @@ add_forwarding_rules() {
 
   # The following iptables command manipulates the nat table PREROUTING chain to perform DNAT:
   # -t nat: operate on the nat table
-  # -C PREROUTING: check if the rule exists (used in the conditional)
   # -A PREROUTING: append a rule to the PREROUTING chain
   # -i <iface>: match packets arriving on interface <iface>
   # -p <proto>: match protocol (tcp/udp)
   # --dport <port>: match destination port
   # -j DNAT --to-destination <ip>:<port>: jump to DNAT target and rewrite destination to ip:port
-  if lib::exec iptables -t nat -C PREROUTING -i "$iface" -p "$proto" --dport "$target_port" -j DNAT --to-destination "$target_ip:$target_port" >/dev/null 2>&1; then
-    log::info "DNAT rule already exists in nat PREROUTING for $iface -> $target_ip:$target_port"
-  else
-    lib::exec iptables -t nat -A PREROUTING -i "$iface" -p "$proto" --dport "$target_port" -j DNAT --to-destination "$target_ip:$target_port"
-    log::info "Added DNAT rule in nat PREROUTING for $iface -> $target_ip:$target_port"
-  fi
+  # We always append the rule and do not fail the whole script if appending returns non-zero.
+  lib::exec iptables -t nat -A PREROUTING -i "$iface" -p "$proto" --dport "$target_port" -j DNAT --to-destination "$target_ip:$target_port" || true
+  log::info "Appended DNAT rule in nat PREROUTING for $iface -> $target_ip:$target_port"
 
   # The following iptables command manipulates the filter table FORWARD chain to allow forwarded packets:
-  # -C FORWARD: check if the rule exists
   # -A FORWARD: append a rule to the FORWARD chain
   # -i <iface>: incoming interface
   # -d <target_ip>: destination ip to match
   # -p <proto> --dport <target_port>: protocol and destination port match
   # -j ACCEPT: accept the matched packet
-  if lib::exec iptables -C FORWARD -i "$iface" -d "$target_ip" -p "$proto" --dport "$target_port" -j ACCEPT >/dev/null 2>&1; then
-    log::info "FORWARD accept rule already exists for $iface -> $target_ip:$target_port"
-  else
-    lib::exec iptables -A FORWARD -i "$iface" -d "$target_ip" -p "$proto" --dport "$target_port" -j ACCEPT
-    log::info "Added FORWARD accept rule for $iface -> $target_ip:$target_port"
-  fi
+  # We always append the rule and do not fail the whole script if appending returns non-zero.
+  lib::exec iptables -A FORWARD -i "$iface" -d "$target_ip" -p "$proto" --dport "$target_port" -j ACCEPT || true
+  log::info "Appended FORWARD accept rule for $iface -> $target_ip:$target_port"
 
   if [[ -n "$out_if" ]]; then
     # The following iptables command manipulates the nat table POSTROUTING chain to perform MASQUERADE:
     # -t nat: operate on the nat table
-    # -C POSTROUTING: check if the rule exists
     # -A POSTROUTING: append a rule to the POSTROUTING chain
     # -o <out_if>: match packets leaving via <out_if>
     # -j MASQUERADE: rewrite source IP to the outgoing interface IP (useful when target's route would not return directly)
-    if lib::exec iptables -t nat -C POSTROUTING -o "$out_if" -j MASQUERADE >/dev/null 2>&1; then
-      log::info "POSTROUTING MASQUERADE already exists on $out_if"
-    else
-      lib::exec iptables -t nat -A POSTROUTING -o "$out_if" -j MASQUERADE
-      log::info "Added POSTROUTING MASQUERADE on $out_if"
-    fi
+    # We always append the rule and do not fail the whole script if appending returns non-zero.
+    lib::exec iptables -t nat -A POSTROUTING -o "$out_if" -j MASQUERADE || true
+    log::info "Appended POSTROUTING MASQUERADE on $out_if"
   fi
 }
 
@@ -157,7 +144,6 @@ status_rules() {
 
   # Example of an awk usage: show PREROUTING DNAT rules and extract destination rewrite info.
   # The following awk command:
-  # -F ' ' : use space as field separator (default)
   # - '/DNAT/ && /PREROUTING/ {print $0}': for lines matching both 'DNAT' and 'PREROUTING' print the full line
   # This helps to highlight DNAT entries in the PREROUTING chain.
   lib::exec iptables -t nat -S PREROUTING 2>/dev/null | lib::exec awk '/DNAT/ && /PREROUTING/ {print $0}' || true

@@ -1,0 +1,4 @@
+- name: Install packages for longhorn
+  hosts: "ionos"
+  roles:
+    - role: socat
