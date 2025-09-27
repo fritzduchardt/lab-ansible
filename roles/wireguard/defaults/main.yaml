@@ -1,0 +1,6 @@
+---
+target_ip: 192.168.0.3
+wireguard_iface: wg1
+ports:
+  - 443
+  - 80

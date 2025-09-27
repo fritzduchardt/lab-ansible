@@ -4,8 +4,7 @@ After=network.target
 
 [Service]
 Type=simple
-# Listen on TCP port %i and forward all traffic to target IP on same port
-ExecStart=/usr/bin/socat TCP-LISTEN:%i,bind=0.0.0.0,fork,reuseaddr TCP:{{ socat_target_ip }}:%i
+ExecStart=/usr/bin/socat TCP6-LISTEN:%i,bind=[::],fork,reuseaddr TCP:{{ socat_target_ip }}:%i
 Restart=always
 RestartSec=5
 

@@ -1,6 +1,0 @@
----
-target_ip: 10.233.46.164
-tailscale_iface: tailscale0
-ports:
-  - 443
-  - 80
