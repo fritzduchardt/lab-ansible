@@ -3,3 +3,7 @@ all:
     ionos:
       ansible_host: ionos
       ansible_user: root
+      socat_target_ip: 10.7.0.3
+      socat_ports:
+        - 80
+        - 443
