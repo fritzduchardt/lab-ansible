@@ -2,7 +2,6 @@
 # This file creates DNAT rules for traffic coming in on the wireguard interface
 # and ensures the forwarded packets are accepted in the filter table.
 # We match TCP dports defined in source_ports (incoming ports) and DNAT them to target_ports on the target_ip.
-# If source_ports is not provided or shorter than target_ports, the corresponding target_port value is used as the incoming port.
 # We also add a POSTROUTING MASQUERADE for traffic to the target_ip on the target_ports,
 # which helps with return routing when the target is reached via a different interface.
 *nat
@@ -35,4 +34,3 @@ COMMIT
 -A FORWARD -i eth0 -o {{ wireguard_iface }} -p tcp --sport {{ port }} -s {{ target_ip }} -j ACCEPT
 {% endfor %}
 COMMIT
-

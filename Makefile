@@ -3,9 +3,9 @@ working_dir = $(shell pwd)
 home_dir = $(HOME)
 cmd = ansible-playbook -i /work/inventory/$(cluster).yaml --become --vault-password-file=/work/.ansible-password
 # renovate: datasource=github-releases depName="kubernetes/kubernetes"
-k8s_version = 1.31.4
+k8s_version = 1.32.8
 # renovate: datasource=github-releases depName="kubernetes-sigs/kubespray"
-kubespray_version = v2.28.0
+kubespray_version = v2.28.1
 
 create-cluster:
 	docker run --user $(id -u):$(id -g) --network host --rm -it --mount type=bind,source="$(working_dir)",dst=/work \

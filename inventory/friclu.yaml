@@ -5,16 +5,16 @@ all:
       ansible_user: fritz
       ansible_ssh_private_key_file: /root/.ssh/id_rsa
       backups:
-        - name: immich
+        - name: friclu-immich
           path: /volumes/immich
+          bucket: friclu-immich
           hour: 21
-        - name: linkding
-          path: /volumes/linkding
-          hour: 22
-        - name: syncthing
+        - name: friclu-syncthing
           path: /volumes/syncthing
+          bucket: friclu-syncthing
           hour: 23
         - name: home-assistant
+          bucket: friclu-ha
           path: /volumes/home-assistant
           hour: 24
     friclu-2:

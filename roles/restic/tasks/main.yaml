@@ -17,7 +17,7 @@
       rm restic_{{ restic.version }}_linux_arm
   when: not restic_bin.stat.exists
 
-- name: Check restic repository
+- name: Initialize restic repository
   changed_when: false
   environment:
     AWS_ACCESS_KEY_ID: "{{ restic.aws_access_key_id }}"
@@ -26,21 +26,12 @@
   ansible.builtin.shell:
     executable: /usr/bin/bash
     cmd: |
-      restic -r "s3:https://{{ restic.s3_url }}/{{ ansible_hostname }}" check
+      if ! restic -r "s3:https://{{ restic.s3_url }}/{{ item.bucket }}" check; then
+        restic -r "s3:https://{{ restic.s3_url }}/{{ item.bucket }}" init
+      fi
   register: restic_check
   ignore_errors: true
-
-- name: Initialize restic repository
-  changed_when: true
-  environment:
-    AWS_ACCESS_KEY_ID: "{{ restic.aws_access_key_id }}"
-    AWS_SECRET_ACCESS_KEY: "{{ restic.aws_secret_access_key }}"
-    RESTIC_PASSWORD: "{{ restic.password }}"
-  ansible.builtin.shell:
-    executable: /usr/bin/bash
-    cmd: |
-      restic -r "s3:https://{{ restic.s3_url }}/{{ ansible_hostname }}" init
-  when: restic_check.rc != 0
+  loop: "{{ backups }}"
 
 - name: Create restic log directory
   become: true
@@ -77,6 +68,6 @@
     hour: "{{ item.hour }}"
     minute: "0"
     user: "root"
-    job: /scripts/restic.sh "{{ restic.s3_url }}" "{{ ansible_hostname }}" "{{ item.path }}" "{{ restic.aws_access_key_id }}" "{{ restic.aws_secret_access_key }}" "{{ restic.password }}" >> /var/log/restic/{{ item.name }}.log 2>&1 # noqa: yaml[line-length]
+    job: /scripts/restic.sh "{{ restic.s3_url }}" "{{ item.bucket }}" "{{ item.path }}" "{{ restic.aws_access_key_id }}" "{{ restic.aws_secret_access_key }}" "{{ restic.password }}" >> /var/log/restic/{{ item.name }}.log 2>&1 # noqa: yaml[line-length]
     state: present
   loop: "{{ backups }}"
