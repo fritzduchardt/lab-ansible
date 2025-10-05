@@ -2,6 +2,7 @@ all:
   hosts:
     friclu-1:
       ansible_host: 192.168.0.21
+#      ansible_host: 10.7.0.2
       ansible_user: root
       ansible_ssh_private_key_file: /root/.ssh/id_rsa
       backups:
@@ -27,6 +28,7 @@ all:
       ansible_host: 192.168.0.19
       ansible_user: root
       ansible_ssh_private_key_file: /root/.ssh/id_rsa
+      wg_address: 10.7.0.6/32
   vars:
     ansible_ssh_common_args: "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
 

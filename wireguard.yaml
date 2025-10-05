@@ -2,6 +2,6 @@
   hosts: "all"
   roles:
     - role: wireguard
-      tag: wireguard
+      tags: wireguard
     - role: wireguard-routing
-      tag: wireguard-routing
+      tags: wireguard-routing

@@ -13,6 +13,12 @@
     name: vim
     state: present
 
+- name: Install nmap
+  become: true
+  ansible.builtin.apt:
+    name: nmap
+    state: present
+
 - name: Install tcpdump for network packet capture and troubleshooting
   become: true
   ansible.builtin.apt:
