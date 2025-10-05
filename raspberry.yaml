@@ -1,4 +1,4 @@
-- name: Install packages for longhorn
+- name: Install packages on pies
   hosts: "all"
   roles:
     - role: raspberry

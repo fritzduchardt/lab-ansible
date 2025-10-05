@@ -1,0 +1,23 @@
+---
+- name: Install postgresql-common
+  become: true
+  ansible.builtin.apt:
+    name: postgresql-common
+    state: present
+
+- name: Run PostgreSQL APT repository setup script
+  become: true
+  ansible.builtin.shell: |
+    /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+
+- name: Update APT cache after adding PostgreSQL repo
+  become: true
+  ansible.builtin.apt:
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Install PostgreSQL client 17
+  become: true
+  ansible.builtin.apt:
+    name: postgresql-client-17
+    state: present

@@ -1,7 +1,7 @@
 #!/usr/bin/bash
 
 url="s3.eu-central-3.ionoscloud.com"
-bucket_name="friclu-1"
+bucket_name="friclu-immich"
 key_id="${1:?provide aws access key id}"
 secret="${2:?provide aws access secret key}"
 password="${3:?provide restic password}"

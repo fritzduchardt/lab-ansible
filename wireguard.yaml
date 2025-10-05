@@ -1,4 +1,4 @@
-- name: Install packages for tailscale
+- name: Install packages for wireguard
   hosts: "friclu-1"
   roles:
     - role: wireguard

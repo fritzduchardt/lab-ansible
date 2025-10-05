@@ -1,4 +1,87 @@
 ---
+- name: Install wireguard package
+  become: true
+  ansible.builtin.package:
+    name: wireguard
+    state: present
+
+- name: Ensure /etc/wireguard directory exists
+  become: true
+  ansible.builtin.file:
+    path: /etc/wireguard
+    state: directory
+    mode: '0700'
+    owner: root
+    group: root
+
+- name: Generate WireGuard private key if missing
+  become: true
+  ansible.builtin.shell:
+    cmd: "umask 077 && wg genkey | tee /etc/wireguard/{{ wireguard_iface }}.priv"
+    creates: "/etc/wireguard/{{ wireguard_iface }}.priv"
+  register: wg_priv_gen
+  changed_when: wg_priv_gen.rc == 0
+
+- name: Generate WireGuard public key if missing (derived from private key)
+  become: true
+  ansible.builtin.shell:
+    cmd: "cat /etc/wireguard/{{ wireguard_iface }}.priv | wg pubkey > /etc/wireguard/{{ wireguard_iface }}.pub"
+    creates: "/etc/wireguard/{{ wireguard_iface }}.pub"
+  register: wg_pub_gen
+  changed_when: wg_pub_gen.rc == 0
+
+- name: Read WireGuard private key into a fact
+  become: true
+  ansible.builtin.slurp:
+    src: "/etc/wireguard/{{ wireguard_iface }}.priv"
+  register: wg_priv_slurp
+
+- name: Set WireGuard private key fact
+  ansible.builtin.set_fact:
+    wg_private_key: "{{ (wg_priv_slurp.content | b64decode).strip() }}"
+
+- name: Read WireGuard public key into a fact
+  become: true
+  ansible.builtin.slurp:
+    src: "/etc/wireguard/{{ wireguard_iface }}.pub"
+  register: wg_pub_slurp
+
+- name: Set WireGuard public key fact
+  ansible.builtin.set_fact:
+    wg_public_key: "{{ (wg_pub_slurp.content | b64decode).strip() }}"
+
+- name: Ensure WireGuard key files have correct permissions
+  become: true
+  ansible.builtin.file:
+    path: "/etc/wireguard/{{ wireguard_iface }}.priv"
+    owner: root
+    group: root
+    mode: '0600'
+
+- name: Ensure WireGuard public key file has correct permissions
+  become: true
+  ansible.builtin.file:
+    path: "/etc/wireguard/{{ wireguard_iface }}.pub"
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Deploy WireGuard interface configuration
+  become: true
+  ansible.builtin.template:
+    src: wg.conf.j2
+    dest: "/etc/wireguard/{{ wireguard_iface }}.conf"
+    mode: '0600'
+    owner: root
+    group: root
+
+- name: Enable and start WireGuard interface service
+  become: true
+  ansible.builtin.systemd:
+    name: "wg-quick@{{ wireguard_iface }}"
+    enabled: true
+    state: started
+
 - name: Ensure ip forwarding is enabled
   become: true
   ansible.builtin.sysctl:
@@ -51,3 +134,8 @@
     cmd: iptables-restore /etc/iptables/iptables-wireguard.rules
   changed_when: true
 
+- name: Show WireGuard public key for remote peer configuration
+  ansible.builtin.debug:
+    msg:
+      - "WireGuard local public key: {{ wg_public_key }}"
+      - "Provide this public key to the remote peer to allow the VM to connect"

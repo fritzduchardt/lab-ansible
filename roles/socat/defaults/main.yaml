@@ -1,7 +1,6 @@
 ---
-socat_target_ip: 100.93.106.112
+socat_target_ip: 10.7.0.2
 socat_ports:
   - 80
   - 443
-
-
+  - 6443

@@ -16,22 +16,22 @@ commands on a remote SSH host.
 Options:
   -s, --ssh-host <user@host> SSH target to run commands on (or set SSH_HOST)
   -i, --iface <iface>       Interface name to use on remote host (overrides TAILSCALE_IF)
-  -l, --local-ip <ip>       Remote host's local tailscale IPv4 to use as SNAT source (or set TAILSCALE_LOCAL_IP)
+  -l, --local-ip <ip>       Remote host's local wireguard IPv4 to use as SNAT source (or set TAILSCALE_LOCAL_IP)
   -t, --target <ip>         Target IP to DNAT traffic to (overrides TAILSCALE_TARGET_IP)
   -r, --remove              Remove rules instead of adding them
   -h, --help                Show this help
 
 Environment variables:
   SSH_HOST               SSH target to run commands on (required unless -s provided)
-  TAILSCALE_IF           Interface name to use on remote host (default: tailscale0)
+  TAILSCALE_IF           Interface name to use on remote host (default: wireguard0)
   TAILSCALE_TARGET_IP    Target IP to DNAT traffic to (default: same as TAILSCALE_LOCAL_IP)
-  TAILSCALE_LOCAL_IP     Remote host's local tailscale IPv4 to use as SNAT source (required unless -l provided)
+  TAILSCALE_LOCAL_IP     Remote host's local wireguard IPv4 to use as SNAT source (required unless -l provided)
 
 Examples:
-  # Apply routing using the default interface and provided local tailscale IP (remote host must be provided)
+  # Apply routing using the default interface and provided local wireguard IP (remote host must be provided)
   "$me" -s user@remote.example.com -l 100.64.0.5
 
-  # Apply routing for a specific target IP and interface on the remote host using an explicit local tailscale IP
+  # Apply routing for a specific target IP and interface on the remote host using an explicit local wireguard IP
   "$me" -s user@remote.example.com -i ts0 -l 100.64.0.5 -t 100.64.0.10
 
   # Remove the rules on the remote host
@@ -50,9 +50,9 @@ run_cmd() {
 }
 
 # Conceptual: Enable IP forwarding at the kernel level on the remote host so the host can route packets
-# between interfaces (necessary when we DNAT/SNAT traffic to/from the tailscale interface).
+# between interfaces (necessary when we DNAT/SNAT traffic to/from the wireguard interface).
 apply_sysctl() {
-  local conf_file="/etc/sysctl.d/99-tailscale-routing.conf"
+  local conf_file="/etc/sysctl.d/99-wireguard-routing.conf"
   local content="net.ipv4.ip_forward=1"
 
   log::debug "Writing sysctl config to $conf_file on remote host $ssh_host"
@@ -69,49 +69,49 @@ apply_sysctl() {
   log::debug "Applied sysctl config to enable ip forwarding on remote host $ssh_host"
 }
 
-# Conceptual: Remove existing NAT, FORWARD, and INPUT rules on the remote host that target the tailscale interface
+# Conceptual: Remove existing NAT, FORWARD, and INPUT rules on the remote host that target the wireguard interface
 # and the configured target IP. This ensures idempotency when removing rules.
 # The rules managed here are specific to TCP ports 80 and 443.
 flush_rules() {
-  local tailscale_if="$1"
+  local wireguard_if="$1"
   local target_ip="$2"
   local local_ts_ip="$3"
 
-  log::debug "Flushing existing iptables rules for target $target_ip via $tailscale_if (ports 80,443) on $ssh_host"
+  log::debug "Flushing existing iptables rules for target $target_ip via $wireguard_if (ports 80,443) on $ssh_host"
 
-  # iptables: delete DNAT PREROUTING rule matching TCP dport 80,443 coming from non-tailscale interfaces
+  # iptables: delete DNAT PREROUTING rule matching TCP dport 80,443 coming from non-wireguard interfaces
   # Command details:
   #   -t nat : operate on the NAT table
   #   -D PREROUTING : delete a rule from the PREROUTING chain
   #   -p tcp : match TCP protocol
   #   -m multiport --dports 80,443 : match destination ports 80 and 443
-  #   "!" -i "$tailscale_if" : match packets incoming on any interface that is NOT tailscale_if
+  #   "!" -i "$wireguard_if" : match packets incoming on any interface that is NOT wireguard_if
   #   -j DNAT --to-destination "$target_ip" : jump to DNAT target and set destination address to target_ip
-  run_cmd iptables -t nat -D PREROUTING -p tcp -m multiport --dports 80,443 "!" -i "$tailscale_if" -j DNAT --to-destination "$target_ip" 2>/dev/null || true
+  run_cmd iptables -t nat -D PREROUTING -p tcp -m multiport --dports 80,443 "!" -i "$wireguard_if" -j DNAT --to-destination "$target_ip" 2>/dev/null || true
 
-  # iptables: delete SNAT POSTROUTING rule to set source to local tailscale ip for outgoing tailscale packets
+  # iptables: delete SNAT POSTROUTING rule to set source to local wireguard ip for outgoing wireguard packets
   # Command details:
   #   -t nat -D POSTROUTING : delete a rule from the POSTROUTING chain in the nat table
-  #   -o "$tailscale_if" : match packets going out via tailscale_if
+  #   -o "$wireguard_if" : match packets going out via wireguard_if
   #   -j SNAT --to-source "$local_ts_ip" : rewrite source to local_ts_ip
-  run_cmd iptables -t nat -D POSTROUTING -o "$tailscale_if" -j SNAT --to-source "$local_ts_ip" 2>/dev/null || true
+  run_cmd iptables -t nat -D POSTROUTING -o "$wireguard_if" -j SNAT --to-source "$local_ts_ip" 2>/dev/null || true
 
-  # iptables: delete FORWARD rule allowing packets from non-tailscale to tailscale for matched ports
+  # iptables: delete FORWARD rule allowing packets from non-wireguard to wireguard for matched ports
   # Command details:
   #   -D FORWARD : delete a rule from FORWARD chain
-  #   "!" -i "$tailscale_if" -o "$tailscale_if" : match packets in on non-tailscale and out on tailscale
+  #   "!" -i "$wireguard_if" -o "$wireguard_if" : match packets in on non-wireguard and out on wireguard
   #   -p tcp -m multiport --dports 80,443 : match tcp dst ports 80 and 443
   #   -m conntrack --ctstate NEW,ESTABLISHED,RELATED : match connection states NEW, ESTABLISHED, RELATED
   #   -j ACCEPT : accept matched packets
-  run_cmd iptables -D FORWARD "!" -i "$tailscale_if" -o "$tailscale_if" -p tcp -m multiport --dports 80,443 -m conntrack --ctstate NEW,ESTABLISHED,RELATED -j ACCEPT 2>/dev/null || true
+  run_cmd iptables -D FORWARD "!" -i "$wireguard_if" -o "$wireguard_if" -p tcp -m multiport --dports 80,443 -m conntrack --ctstate NEW,ESTABLISHED,RELATED -j ACCEPT 2>/dev/null || true
 
-  # iptables: delete FORWARD rule allowing established/related returning traffic from tailscale to non-tailscale
+  # iptables: delete FORWARD rule allowing established/related returning traffic from wireguard to non-wireguard
   # Command details:
   #   -D FORWARD : delete a rule from FORWARD chain
-  #   -i "$tailscale_if" "!" -o "$tailscale_if" : match packets in on tailscale and out on non-tailscale
+  #   -i "$wireguard_if" "!" -o "$wireguard_if" : match packets in on wireguard and out on non-wireguard
   #   -m conntrack --ctstate ESTABLISHED,RELATED : only allow established or related connections back
   #   -j ACCEPT : accept matched packets
-  run_cmd iptables -D FORWARD -i "$tailscale_if" "!" -o "$tailscale_if" -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT 2>/dev/null || true
+  run_cmd iptables -D FORWARD -i "$wireguard_if" "!" -o "$wireguard_if" -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT 2>/dev/null || true
 
   # iptables: delete INPUT rule allowing incoming TCP ports 80 and 443 to the VM
   # Command details:
@@ -123,47 +123,47 @@ flush_rules() {
 }
 
 # Conceptual: Create NAT, FORWARD, and INPUT rules on the remote host so TCP traffic destined to ports 80/443
-# coming from non-tailscale interfaces is DNAT'd to the target and routed out via the tailscale interface.
+# coming from non-wireguard interfaces is DNAT'd to the target and routed out via the wireguard interface.
 # Use SNAT to make sure reply packets return properly. Also open ports 80 and 443 on the VM to public.
 add_rules() {
-  local tailscale_if="$1"
+  local wireguard_if="$1"
   local target_ip="$2"
   local local_ts_ip="$3"
 
-  log::debug "Adding iptables rules to route TCP ports 80 and 443 to $target_ip via $tailscale_if (src $local_ts_ip) on $ssh_host"
+  log::debug "Adding iptables rules to route TCP ports 80 and 443 to $target_ip via $wireguard_if (src $local_ts_ip) on $ssh_host"
 
-  # iptables: DNAT prerouting for TCP traffic on ports 80 and 443 coming from non-tailscale interfaces to target IP
+  # iptables: DNAT prerouting for TCP traffic on ports 80 and 443 coming from non-wireguard interfaces to target IP
   # Command details:
   #   -t nat -A PREROUTING : append a rule to PREROUTING chain in nat table
   #   -p tcp : match TCP protocol
   #   -m multiport --dports 80,443 : match destination ports 80 and 443
-  #   "!" -i "$tailscale_if" : match packets incoming on any interface that is NOT tailscale_if
+  #   "!" -i "$wireguard_if" : match packets incoming on any interface that is NOT wireguard_if
   #   -j DNAT --to-destination "$target_ip" : rewrite destination to target_ip
-  run_cmd iptables -t nat -A PREROUTING -p tcp -m multiport --dports 80,443 "!" -i "$tailscale_if" -j DNAT --to-destination "$target_ip"
+  run_cmd iptables -t nat -A PREROUTING -p tcp -m multiport --dports 80,443 "!" -i "$wireguard_if" -j DNAT --to-destination "$target_ip"
 
-  # iptables: SNAT postrouting for outgoing tailscale packets to use local tailscale IP as source
+  # iptables: SNAT postrouting for outgoing wireguard packets to use local wireguard IP as source
   # Command details:
   #   -t nat -A POSTROUTING : append a rule to POSTROUTING chain in nat table
-  #   -o "$tailscale_if" : match packets going out via tailscale_if
+  #   -o "$wireguard_if" : match packets going out via wireguard_if
   #   -j SNAT --to-source "$local_ts_ip" : rewrite source to local_ts_ip
-  run_cmd iptables -t nat -A POSTROUTING -o "$tailscale_if" -j SNAT --to-source "$local_ts_ip"
+  run_cmd iptables -t nat -A POSTROUTING -o "$wireguard_if" -j SNAT --to-source "$local_ts_ip"
 
-  # iptables: allow forwarding of new/established/related TCP connections from non-tailscale to tailscale (ports 80/443)
+  # iptables: allow forwarding of new/established/related TCP connections from non-wireguard to wireguard (ports 80/443)
   # Command details:
   #   -A FORWARD : append rule to FORWARD chain
-  #   "!" -i "$tailscale_if" -o "$tailscale_if" : packets from non-tailscale in to tailscale out
+  #   "!" -i "$wireguard_if" -o "$wireguard_if" : packets from non-wireguard in to wireguard out
   #   -p tcp -m multiport --dports 80,443 : match tcp dst ports 80 and 443
   #   -m conntrack --ctstate NEW,ESTABLISHED,RELATED : match connection states NEW, ESTABLISHED, RELATED
   #   -j ACCEPT : accept matched packets
-  run_cmd iptables -A FORWARD "!" -i "$tailscale_if" -o "$tailscale_if" -p tcp -m multiport --dports 80,443 -m conntrack --ctstate NEW,ESTABLISHED,RELATED -j ACCEPT
+  run_cmd iptables -A FORWARD "!" -i "$wireguard_if" -o "$wireguard_if" -p tcp -m multiport --dports 80,443 -m conntrack --ctstate NEW,ESTABLISHED,RELATED -j ACCEPT
 
-  # iptables: allow established/related forwarding from tailscale to non-tailscale
+  # iptables: allow established/related forwarding from wireguard to non-wireguard
   # Command details:
   #   -A FORWARD : append rule to FORWARD chain
-  #   -i "$tailscale_if" "!" -o "$tailscale_if" : packets from tailscale in to non-tailscale out
+  #   -i "$wireguard_if" "!" -o "$wireguard_if" : packets from wireguard in to non-wireguard out
   #   -m conntrack --ctstate ESTABLISHED,RELATED : only allow established or related connections back
   #   -j ACCEPT : accept matched packets
-  run_cmd iptables -A FORWARD -i "$tailscale_if" "!" -o "$tailscale_if" -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+  run_cmd iptables -A FORWARD -i "$wireguard_if" "!" -o "$wireguard_if" -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
 
   # iptables: allow incoming TCP connections on ports 80 and 443 to the VM itself
   # Command details:
@@ -228,29 +228,29 @@ main() {
     return 2
   fi
 
-  local tailscale_if="${cli_if:-$TAILSCALE_IF}"
-  tailscale_if="${tailscale_if:-tailscale0}"
+  local wireguard_if="${cli_if:-$TAILSCALE_IF}"
+  wireguard_if="${wireguard_if:-wireguard0}"
 
-  local tailscale_target_ip="${cli_target:-$TAILSCALE_TARGET_IP}"
+  local wireguard_target_ip="${cli_target:-$TAILSCALE_TARGET_IP}"
 
-  # The remote host's local tailscale IPv4 is now provided explicitly via CLI or env.
+  # The remote host's local wireguard IPv4 is now provided explicitly via CLI or env.
   # This replaces autodetection of the remote interface address.
   local local_ts_ip="${cli_local_ip:-$TAILSCALE_LOCAL_IP}"
 
-  log::info "Configuring iptables routing for interface $tailscale_if on remote host $ssh_host"
+  log::info "Configuring iptables routing for interface $wireguard_if on remote host $ssh_host"
   if [[ -n "$do_remove" ]]; then
     log::info "Running in remove mode; will remove rules on remote host $ssh_host"
   fi
 
   if [[ -z "$local_ts_ip" ]]; then
-    log::error "Remote tailscale IPv4 not provided. Use -l/--local-ip or set TAILSCALE_LOCAL_IP environment variable."
+    log::error "Remote wireguard IPv4 not provided. Use -l/--local-ip or set TAILSCALE_LOCAL_IP environment variable."
     usage
     return 2
   fi
 
-  # Allow overriding TAILSCALE_TARGET_IP via environment or CLI; default to the provided local tailscale IP if unset
-  tailscale_target_ip="${tailscale_target_ip:-$local_ts_ip}"
-  if [[ -z "$tailscale_target_ip" ]]; then
+  # Allow overriding TAILSCALE_TARGET_IP via environment or CLI; default to the provided local wireguard IP if unset
+  wireguard_target_ip="${wireguard_target_ip:-$local_ts_ip}"
+  if [[ -z "$wireguard_target_ip" ]]; then
     log::error "can't determine TAILSCALE_TARGET_IP; set TAILSCALE_TARGET_IP environment variable or provide via -t/--target"
     return 2
   fi
@@ -258,13 +258,13 @@ main() {
   apply_sysctl
 
   if [[ -n "$do_remove" ]]; then
-    flush_rules "$tailscale_if" "$tailscale_target_ip" "$local_ts_ip"
-    log::info "Removed iptables routing for $tailscale_target_ip via $tailscale_if on $ssh_host"
+    flush_rules "$wireguard_if" "$wireguard_target_ip" "$local_ts_ip"
+    log::info "Removed iptables routing for $wireguard_target_ip via $wireguard_if on $ssh_host"
     return 0
   fi
 
-  add_rules "$tailscale_if" "$tailscale_target_ip" "$local_ts_ip"
-  log::info "Applied routing for TCP ports 80 and 443 to $tailscale_target_ip via $tailscale_if on $ssh_host (remote tailscale ip: $local_ts_ip)"
+  add_rules "$wireguard_if" "$wireguard_target_ip" "$local_ts_ip"
+  log::info "Applied routing for TCP ports 80 and 443 to $wireguard_target_ip via $wireguard_if on $ssh_host (remote wireguard ip: $local_ts_ip)"
 }
 
 main "$@"

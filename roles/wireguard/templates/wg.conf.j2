@@ -1,0 +1,25 @@
+# WireGuard configuration for {{ wireguard_iface }}
+# This config defines a local WireGuard interface and a single peer.
+# The interface will be assigned the IP address from wg_address and will use the generated private key.
+# The Peer section configures the remote endpoint to which this VM will connect.
+#
+# Address: the IP assigned on the WireGuard device for this VM.
+# ListenPort: the UDP port WireGuard listens on locally.
+# PrivateKey: the private key for this VM (populated from the generated key).
+#
+# Peer.PublicKey: the remote peer's public key (peer_pub_key).
+# Peer.Endpoint: the remote peer address:port (peer_endpoint:peer_port).
+# AllowedIPs: which IP ranges should be routed to the peer (peer_allowed_ips).
+# PersistentKeepalive: keepalive packets to maintain NAT mappings for the connection.
+[Interface]
+Address = {{ wg_address }}
+ListenPort = {{ listen_port }}
+PrivateKey = {{ wg_private_key }}
+
+# Configure remote peer to connect to. This tells the local WireGuard interface to send
+# all matching traffic to the remote peer's public key at the given endpoint.
+[Peer]
+PublicKey = {{ peer_pub_key }}
+Endpoint = {{ peer_endpoint }}:{{ peer_port | default(listen_port) }}
+AllowedIPs = {{ peer_allowed_ips }}
+PersistentKeepalive = {{ persistent_keepalive | default(25) }}

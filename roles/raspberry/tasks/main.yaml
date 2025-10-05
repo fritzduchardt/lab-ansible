@@ -1,4 +1,24 @@
 ---
+- name: Perform apt upgrade
+  become: true
+  ansible.builtin.apt:
+    upgrade: dist
+    update_cache: yes
+    autoremove: yes
+    autoclean: yes
+
+- name: Install vim
+  become: true
+  ansible.builtin.apt:
+    name: vim
+    state: present
+
+- name: Install tcpdump for network packet capture and troubleshooting
+  become: true
+  ansible.builtin.apt:
+    name: tcpdump
+    state: present
+
 - name: Enable memory cgroups
   become: true
   ansible.builtin.lineinfile:
@@ -9,10 +29,10 @@
   notify:
     - reboot
 
-- name: Disable swap
+- name: Disable swap (Bookworm)
   become: true
   ansible.builtin.systemd_service:
-    name: systemd-zram-setup@zram0.service
+    name: dphys-swapfile.service
     masked: true
     enabled: false
   notify:
