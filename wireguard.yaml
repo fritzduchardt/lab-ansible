@@ -1,4 +1,7 @@
 - name: Install packages for wireguard
-  hosts: "friclu-1"
+  hosts: "all"
   roles:
     - role: wireguard
+      tag: wireguard
+    - role: wireguard-routing
+      tag: wireguard-routing

@@ -1,20 +1,10 @@
 ---
-target_ip: 192.168.0.23
 wireguard_iface: wg1
-target_ports:
-  - 6443
-  - 30819
-  - 30131
-source_ports:
-  - 6443
-  - 443
-  - 80
+listen_port: 51820               # Local listen port for WireGuard interface
+persistent_keepalive: 25         # Persistent keepalive interval (seconds) to maintain NAT mappings
+
+# peer config
 peer_pub_key: ONF1v1PC/jM+oJlcVGtAkOYo4HmtmdTV0gsqT6hmaDk=
 peer_endpoint: 212.227.63.239
-
-# WireGuard client configuration defaults for this VM
-wg_address: 10.7.0.2/32          # IP address to assign to the WireGuard interface on this VM
-listen_port: 51820               # Local listen port for WireGuard interface
 peer_allowed_ips: 10.7.0.0/24    # Allowed IPs for the peer (traffic routed via the peer)
-persistent_keepalive: 25         # Persistent keepalive interval (seconds) to maintain NAT mappings
 peer_port: 51820                 # Port on the peer endpoint to connect to (defaults to listen_port)

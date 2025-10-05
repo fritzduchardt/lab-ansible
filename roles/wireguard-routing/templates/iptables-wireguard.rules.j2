@@ -34,3 +34,4 @@ COMMIT
 -A FORWARD -i eth0 -o {{ wireguard_iface }} -p tcp --sport {{ port }} -s {{ target_ip }} -j ACCEPT
 {% endfor %}
 COMMIT
+

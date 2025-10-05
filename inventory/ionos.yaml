@@ -3,3 +3,4 @@ all:
     ionos:
       ansible_host: ionos
       ansible_user: root
+      wg_address: 10.7.0.4/32
