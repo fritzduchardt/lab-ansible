@@ -1,4 +1,0 @@
-- name: Install packages for duckdns
-  hosts: "duckdns"
-  roles:
-    - role: duckdns
