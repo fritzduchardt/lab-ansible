@@ -3,7 +3,3 @@
   roles:
     - role: raspberry
       tag: raspberry
-    - role: postgres
-      tag: postgres
-    - role: restic
-      tag: restic

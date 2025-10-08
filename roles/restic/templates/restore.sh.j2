@@ -1,0 +1,164 @@
+#!/usr/bin/env bash
+set -eo pipefail
+
+usage() {
+  echo """
+Usage: $0 [OPTIONS] <url> <bucket> <key> <secret> <password> [out]
+
+Restore a restic backup from S3-compatible storage.
+
+ARGUMENTS:
+  url        S3 endpoint URL (e.g., s3.amazonaws.com)
+  bucket     Bucket type (ha|immich|syncthing|vault)
+  key        AWS Access Key ID
+  secret     AWS Secret Access Key
+  password   Restic repository password
+  out        Output directory (default: /tmp/restore-<bucket>)
+
+OPTIONS:
+  -h, --help     Show this help message
+  --url          S3 endpoint URL
+  --bucket       Bucket type
+  --key          AWS Access Key ID
+  --secret       AWS Secret Access Key
+  --password     Restic repository password
+  --out          Output directory
+
+EXAMPLES:
+  # Restore immich backup to default location
+  $0 s3.example.com immich AKIAIOSFODNN7EXAMPLE wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY mypassword
+
+  # Restore vault backup to custom location
+  $0 --url s3.example.com --bucket vault --key AKIAIOSFODNN7EXAMPLE \\
+    --secret wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY \\
+    --password mypassword --out /opt/restore/vault
+
+  # Restore ha backup with positional arguments and custom output
+  $0 s3.example.com ha AKIAIOSFODNN7EXAMPLE wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY mypassword /data/restore
+"""
+}
+
+parse_args() {
+  local url
+  local bucket
+  local key
+  local secret
+  local password
+  local out
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      -h|--help)
+        usage
+        exit 0
+        ;;
+      --url)
+        url="$2"
+        shift 2
+        ;;
+      --bucket)
+        bucket="$2"
+        shift 2
+        ;;
+      --key)
+        key="$2"
+        shift 2
+        ;;
+      --secret)
+        secret="$2"
+        shift 2
+        ;;
+      --password)
+        password="$2"
+        shift 2
+        ;;
+      --out)
+        out="$2"
+        shift 2
+        ;;
+      *)
+        if [[ -z "$url" ]]; then
+          url="$1"
+        elif [[ -z "$bucket" ]]; then
+          bucket="$1"
+        elif [[ -z "$key" ]]; then
+          key="$1"
+        elif [[ -z "$secret" ]]; then
+          secret="$1"
+        elif [[ -z "$password" ]]; then
+          password="$1"
+        elif [[ -z "$out" ]]; then
+          out="$1"
+        else
+          echo "Ignoring extra argument: $1"
+        fi
+        shift
+        ;;
+    esac
+  done
+
+  url="${url:?provide s3 url}"
+  bucket="${bucket:?provide bucket type (ha|immich|syncthing|vault)}"
+  key="${key:?provide aws access key id}"
+  secret="${secret:?provide aws access secret key}"
+  password="${password:?provide restic password}"
+
+  # Validate bucket type
+  if [[ "$bucket" != "friclu-ha" && "$bucket" != "friclu-immich" && "$bucket" != "friclu-syncthing" && "$bucket" != "friclu-vault" ]]; then
+    echo "Invalid bucket type: $bucket. Allowed: ha, immich, syncthing, vault"
+    exit 2
+  fi
+
+  out="${out:-/tmp/restore-$bucket}"
+
+  export AWS_ACCESS_KEY_ID="$key"
+  export AWS_SECRET_ACCESS_KEY="$secret"
+  export RESTIC_PASSWORD="$password"
+
+  s3_url="$url"
+  bucket_name="$bucket"
+  out_dir="$out"
+}
+
+perform_restore() {
+  local s3
+  local bucket
+  local outdir
+  local rc
+  s3="$s3_url"
+  bucket="$bucket_name"
+  outdir="$out_dir"
+
+  echo "Preparing output directory: $outdir"
+  mkdir -p "$outdir"
+  rc=$?
+  if [[ $rc -ne 0 ]]; then
+    echo "Failed to prepare output directory: $outdir"
+    exit $rc
+  fi
+
+  echo "Starting restic restore for bucket $bucket from s3://$s3/$bucket to $outdir"
+
+  # The following restic restore operation will connect to the S3-compatible
+  # storage over HTTPS to download the snapshot data. It requires network
+  # connectivity to the S3 endpoint and valid access credentials (AWS_ACCESS_KEY_ID
+  # and AWS_SECRET_ACCESS_KEY) and the repository password (RESTIC_PASSWORD).
+  # The restic client will fetch the metadata, determine the latest snapshot,
+  # and stream the files to the target directory.
+  "/usr/local/bin/restic" -r "s3:https://$s3/$bucket" restore latest --target "$outdir"
+  rc=$?
+
+  if [[ $rc -eq 0 ]]; then
+    echo "Restore completed successfully to $outdir"
+  else
+    echo "Restore failed with exit code $rc"
+    exit $rc
+  fi
+}
+
+main() {
+  parse_args "$@"
+  perform_restore
+}
+
+main "$@"

@@ -6,6 +6,10 @@ all:
       ansible_user: root
       ansible_ssh_private_key_file: /root/.ssh/id_rsa
       backups:
+        - name: friclu-vault
+          path: /volumes/vault
+          bucket: friclu-vault
+          hour: 21
         - name: friclu-immich
           path: /volumes/immich
           bucket: friclu-immich
@@ -20,12 +24,14 @@ all:
           hour: 24
       wg_address: 10.7.0.2/32
     friclu-2:
-      ansible_host: 192.168.0.23
+#      ansible_host: 192.168.0.23
+      ansible_host: 10.7.0.3
       ansible_user: root
       ansible_ssh_private_key_file: /root/.ssh/id_rsa
       wg_address: 10.7.0.3/32
     friclu-3:
-      ansible_host: 192.168.0.19
+#      ansible_host: 192.168.0.19
+      ansible_host: 10.7.0.6
       ansible_user: root
       ansible_ssh_private_key_file: /root/.ssh/id_rsa
       wg_address: 10.7.0.6/32

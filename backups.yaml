@@ -1,0 +1,7 @@
+- name: Install restic
+  hosts: "friclu-1"
+  roles:
+    - role: restic
+      tags: restic
+    - role: postgres
+      tags: postgres

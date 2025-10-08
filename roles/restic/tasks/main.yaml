@@ -51,14 +51,22 @@
     owner: root
     group: root
 
-- name: Install restic script
+- name: Find all script templates
+  ansible.builtin.find:
+    paths: "{{ role_path }}/templates"
+    patterns: "*.sh.j2"
+  register: script_templates
+  delegate_to: localhost
+
+- name: Install all scripts from templates
   become: true
   ansible.builtin.template:
-    dest: /scripts/restic.sh
-    src: restic.sh.j2
+    dest: "/scripts/{{ item.path | basename | regex_replace('\\.j2$', '') }}"
+    src: "{{ item.path | basename }}"
     mode: "0755"
     owner: root
     group: root
+  loop: "{{ script_templates.files }}"
 
 - name: Install backups
   become: true
@@ -68,6 +76,6 @@
     hour: "{{ item.hour }}"
     minute: "0"
     user: "root"
-    job: /scripts/restic.sh "{{ restic.s3_url }}" "{{ item.bucket }}" "{{ item.path }}" "{{ restic.aws_access_key_id }}" "{{ restic.aws_secret_access_key }}" "{{ restic.password }}" >> /var/log/restic/{{ item.name }}.log 2>&1 # noqa: yaml[line-length]
+    job: /scripts/backup.sh "{{ restic.s3_url }}" "{{ item.bucket }}" "{{ item.path }}" "{{ restic.aws_access_key_id }}" "{{ restic.aws_secret_access_key }}" "{{ restic.password }}" >> /var/log/restic/{{ item.name }}.log 2>&1 # noqa: yaml[line-length]
     state: present
   loop: "{{ backups }}"
