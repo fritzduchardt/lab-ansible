@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 set -eo pipefail
+
 SCRIPT_DIR="$(dirname -- "$0")"
-source "$SCRIPT_DIR/../lib/log.sh"
-source "$SCRIPT_DIR/../lib/utils.sh"
 
 usage() {
   echo """
@@ -35,24 +34,26 @@ convert_cv() {
   local template_file="$3"
   local pdf_engine="$4"
 
-  log::info "Converting CV from markdown to PDF"
-  log::info "Input: $input_file"
-  log::info "Output: $output_file"
-  log::info "Template: $template_file"
-  log::info "PDF Engine: $pdf_engine"
+  echo "Converting CV from markdown to PDF"
+  echo "Input: $input_file"
+  echo "Output: $output_file"
+  echo "Template: $template_file"
+  echo "PDF Engine: $pdf_engine"
 
-  lib::exec pandoc "$input_file" -o "$output_file" --template="$template_file" --pdf-engine="$pdf_engine"
+  export LC_ALL=C.UTF-8
+  export LANG=C.UTF-8
+  pandoc "$input_file" -o "$output_file" --template="$template_file" --pdf-engine="$pdf_engine"
   local rc=$?
   if [[ $rc -ne 0 ]]; then
-    log::error "Pandoc failed with exit code $rc"
+    echo "Pandoc failed with exit code $rc"
     return $rc
   fi
 
   if [[ -f "$output_file" ]]; then
-    log::info "Successfully created PDF: $output_file"
+    echo "Successfully created PDF: $output_file"
     return 0
   else
-    log::error "Failed to create PDF file"
+    echo "Failed to create PDF file"
     return 1
   fi
 }
@@ -90,7 +91,7 @@ main() {
         exit 0
         ;;
       *)
-        log::error "Unknown option: $1"
+        echo "Unknown option: $1"
         usage
         exit 1
         ;;
@@ -98,25 +99,22 @@ main() {
   done
 
   if [[ -z "$input_file" ]]; then
-    log::warn "Input file not specified"
+    echo "Input file not specified"
     usage
     exit 1
   fi
 
   if [[ -z "$output_file" ]]; then
     output_file="${input_file%.md}.pdf"
-    log::warn "Output file not specified"
-    usage
-    exit 1
   fi
 
   if [[ ! -f "$input_file" ]]; then
-    log::error "Input file not found: $input_file"
+    echo "Input file not found: $input_file"
     exit 1
   fi
 
   if [[ ! -f "$template_file" ]]; then
-    log::error "Template file not found: $template_file"
+    echo "Template file not found: $template_file"
     exit 1
   fi
 
