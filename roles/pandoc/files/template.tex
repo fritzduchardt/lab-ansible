@@ -16,6 +16,8 @@
 \usepackage[left=1in,right=1in,top=1in,bottom=1.25in]{geometry}
 % Load ragged2e for better ragged right alignment
 \usepackage{ragged2e}
+% Load enumitem for list spacing control
+\usepackage{enumitem}
 % Provide a no-op tightlist for Markdown conversions
 \providecommand{\tightlist}{%
     \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
@@ -150,12 +152,36 @@
 % Disable hyphenation for cleaner left-aligned text
 \hyphenpenalty=10000
 \exhyphenpenalty=10000
+% Set consistent paragraph spacing
+\setlength{\parskip}{0.5\baselineskip}
+\setlength{\parindent}{0pt}
+% Configure list spacing globally
+\setlist{noitemsep,topsep=0.25\baselineskip,partopsep=0pt,parsep=0pt}
+% Configure spacing around sections
+\makeatletter
+\renewcommand\section{\@startsection{section}{1}{\z@}%
+    {-1.5\baselineskip}%
+    {0.5\baselineskip}%
+    {\headerfont\LARGE\bfseries\raggedright}}
+\renewcommand\subsection{\@startsection{subsection}{2}{\z@}%
+    {-1\baselineskip}%
+    {0.3\baselineskip}%
+    {\headerfont\Large\bfseries\raggedright}}
+\renewcommand\subsubsection{\@startsection{subsubsection}{3}{\z@}%
+    {-0.75\baselineskip}%
+    {0.2\baselineskip}%
+    {\headerfont\large\bfseries\raggedright}}
+\makeatother
+% Adjust spacing around display math
+\AtBeginDocument{%
+    \setlength{\abovedisplayskip}{0.5\baselineskip}%
+    \setlength{\belowdisplayskip}{0.5\baselineskip}%
+    \setlength{\abovedisplayshortskip}{0.25\baselineskip}%
+    \setlength{\belowdisplayshortskip}{0.25\baselineskip}%
+}
 \begin{document}
 % Apply first page style to the first page
     \thispagestyle{firstpage}
-% Preserve sequences of spaces from Markdown by making spaces active locally
-    \begingroup
-    \obeyspaces
+% Body content
     $body$
-    \endgroup
 \end{document}
