@@ -1,0 +1,40 @@
+---
+- name: Install pandoc and TeX packages
+  become: true
+  ansible.builtin.apt:
+    name:
+      - pandoc
+      - texlive-latex-recommended
+      - texlive-fonts-extra
+      - texlive-latex-extra
+      - texlive-fonts-recommended
+      - texlive-luatex
+      - texlive-xetex
+    state: present
+    update_cache: yes
+
+- name: Create scripts directory
+  become: true
+  ansible.builtin.file:
+    path: /scripts
+    state: directory
+    mode: '0755'
+    owner: root
+    group: root
+
+- name: Find all script files
+  ansible.builtin.find:
+    paths: "{{ role_path }}/files"
+    patterns: "*.*"
+  register: script_files
+  delegate_to: localhost
+
+- name: Install all scripts from files
+  become: true
+  ansible.builtin.copy:
+    src: "{{ item.path }}"
+    dest: "/scripts/{{ item.path | basename }}"
+    mode: "0755"
+    owner: root
+    group: root
+  loop: "{{ script_files.files }}"

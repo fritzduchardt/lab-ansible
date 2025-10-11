@@ -1,0 +1,151 @@
+% Document class: simple article with 11pt font
+\documentclass[11pt]{article}
+% Load header/footer management
+\usepackage{fancyhdr}
+% Load color support
+\usepackage{xcolor}
+% Load hyperref for links and PDF metadata
+\usepackage{hyperref}
+% Load fontspec for system fonts (XeLaTeX/LuaLaTeX)
+\usepackage{fontspec}
+% Load spacing utility
+\usepackage{setspace}
+% Load package to adjust section fonts
+\usepackage{sectsty}
+% Adjust page margins: make left and right margins smaller for tighter horizontal layout
+\usepackage[left=1in,right=1in,top=1in,bottom=1.25in]{geometry}
+% Provide a no-op tightlist for Markdown conversions
+\providecommand{\tightlist}{%
+\setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+% Set slightly increased line spacing for readability
+\setstretch{1.15}
+% Disable automatic section numbering so headings are clean
+\setcounter{secnumdepth}{0}
+% Define a compact palette used by header/footer and links
+\definecolor{linkgray}{RGB}{64,64,64}
+\definecolor{accent}{RGB}{10,84,129}
+\definecolor{muted}{RGB}{120,120,120}
+\definecolor{footergray}{RGB}{110,110,110}
+\definecolor{footerbg}{RGB}{245,245,247}
+% Configure hyperref to use colored links without boxes; pick neutral gray
+\hypersetup{
+colorlinks=true,
+linkcolor=linkgray,
+urlcolor=linkgray,
+citecolor=linkgray,
+pdfborder={0 0 0}
+}
+subtle appearance
+\let\oldhref\href
+\let\oldurl\url
+\renewcommand{\href}[2]{\oldhref{#1}{\textcolor{linkgray}{\textit{#2}}}}
+\renewcommand{\url}[1]{\oldhref{#1}{\textcolor{linkgray}{\textit{\nolinkurl{#1}}}}}
+% Set the main (body) font to a clean sans-serif
+\setmainfont{Noto Sans}
+% Define a serif font for headings to create a typographic contrast
+\newfontfamily\headerfont{Noto Serif}
+% Apply serif header font and larger sizes to section headings
+\sectionfont{\headerfont\LARGE\bfseries}
+\subsectionfont{\headerfont\Large\bfseries}
+\subsubsectionfont{\headerfont\large\bfseries}
+% Define custom page style for first page with header
+\fancypagestyle{firstpage}{%
+\fancyhf{}
+% Draw a thin accent rule at the top using the accent color
+\renewcommand{\headrulewidth}{0pt}
+\makeatletter
+\renewcommand{\headrule}{%
+{\color{accent}\hrule width\headwidth height 1pt \vskip1.5\baselineskip}%
+}
+\makeatother
+% Construct a balanced header: left shows name+role, right shows contact info
+\fancyhead[L]{%
+\begin{minipage}[b]{0.65\linewidth}%
+{\headerfont\Large\bfseries $name$}\\[1pt]%
+{\headerfont\small\color{muted}$role$}%
+\end{minipage}%
+}
+\fancyhead[R]{%
+\begin{minipage}[b]{0.3\linewidth}%
+\raggedleft%
+{\headerfont\small\color{muted}$phone$}\\[1pt]%
+{\headerfont\small\color{muted}\href{mailto:$email$}{$email$}}%
+\end{minipage}%
+}
+% Disable default footer rule width
+\renewcommand{\footrulewidth}{0pt}
+% Add a subtle footer separator using footer gray with proper spacing
+\makeatletter
+0.4pt}%
+\vskip0.3\baselineskip
+}
+\makeatother
+% Footer: left contact line, right page box
+\fancyfoot[L]{%
+\begin{minipage}[c]{0.75\linewidth}%
+\noindent\mbox{\headerfont\scriptsize\textcolor{footergray}{$name$\quad\textbullet\quad$phone$\quad\textbullet\quad\href{mailto:$email$}{$email$}}}%
+\end{minipage}%
+}
+\fancyfoot[R]{%
+\begin{minipage}[c]{0.2\linewidth}%
+\raggedleft%
+{\thepagebox}%
+\end{minipage}%
+}
+}
+% Define page style for subsequent pages (no header, only footer)
+\fancypagestyle{otherpages}{%
+\fancyhf{}
+% No header rule
+\renewcommand{\headrulewidth}{0pt}
+% Disable default footer rule width
+\renewcommand{\footrulewidth}{0pt}
+with proper spacing
+\makeatletter
+\renewcommand{\footrule}{%
+\vskip-\footruleskip\vskip-\footrulewidth
+\vskip0.5\baselineskip
+{\color{footergray}\hrule width\headwidth height 0.4pt}%
+\vskip0.3\baselineskip
+}
+\makeatother
+% Footer: left contact line, right page box
+\fancyfoot[L]{%
+\begin{minipage}[c]{0.75\linewidth}%
+\noindent\mbox{\headerfont\scriptsize\textcolor{footergray}{$name$  \quad\textbullet\quad $role$\quad\textbullet\quad$phone$\quad\textbullet\quad\href{mailto:$email$}{$email$}}}%
+\end{minipage}%
+}
+\fancyfoot[R]{%
+\begin{minipage}[c]{0.2\linewidth}%
+\raggedleft%
+{\thepagebox}%
+\end{minipage}%
+}
+}
+% Define a small boxed page number with light background
+\newcommand{\thepagebox}{%
+\begingroup%
+\setlength{\fboxsep}{4pt}%
+\colorbox{footerbg}{\headerfont\textcolor{footergray}{\scriptsize\strut\thepage\strut}}%
+\endgroup%
+}
+% Use the otherpages style as default
+\pagestyle{otherpages}
+% Ensure enough headroom for the header rule and content
+\setlength{\headheight}{22pt}
+% Increase space between the header horizontal rule and the document content
+\setlength{\headsep}{2\baselineskip}
+% Set appropriate space between the bottom of the main content and the footer
+\setlength{\footskip}{45pt}
+% Prevent paragraph indent when a paragraph starts with \textbf
+\let\origtextbf\textbf
+\renewcommand{\textbf}[1]{\ifvmode\noindent\fi\origtextbf{#1}}
+\begin{document}
+% Apply first page style to the first page
+\thispagestyle{firstpage}
+% Preserve sequences of spaces from Markdown by making spaces active locally
+\begingroup
+\obeyspaces
+$body$
+\endgroup
+\end{document}
