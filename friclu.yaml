@@ -1,5 +1,0 @@
-- name: Install packages on pies
-  hosts: "all"
-  roles:
-    - role: raspberry
-      tag: raspberry

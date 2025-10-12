@@ -2,4 +2,3 @@
   hosts: "friclu-1"
   roles:
     - role: pandoc
-      tags: pandoc

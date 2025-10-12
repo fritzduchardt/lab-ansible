@@ -40,8 +40,6 @@ convert_cv() {
   echo "Template: $template_file"
   echo "PDF Engine: $pdf_engine"
 
-  export LC_ALL=C.UTF-8
-  export LANG=C.UTF-8
   pandoc "$input_file" -o "$output_file" --template="$template_file" --pdf-engine="$pdf_engine"
   local rc=$?
   if [[ $rc -ne 0 ]]; then

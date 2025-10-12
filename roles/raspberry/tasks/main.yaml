@@ -25,6 +25,17 @@
     name: tcpdump
     state: present
 
+- name: Setup locales
+  become: true
+  ansible.builtin.shell:
+    executable: /usr/bin/bash
+    cmd: |
+      apt install -y locales
+      sed -i 's/^# *\(en_US.UTF-8 UTF-8\)/\1/; s/^# *\(de_DE.UTF-8 UTF-8\)/\1/' /etc/locale.gen
+      locale-gen
+      dpkg-reconfigure --frontend=noninteractive locales
+      update-locale LANG=en_US.UTF-8
+
 - name: Enable memory cgroups
   become: true
   ansible.builtin.lineinfile:
