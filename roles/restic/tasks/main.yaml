@@ -23,16 +23,16 @@
     AWS_ACCESS_KEY_ID: "{{ restic.aws_access_key_id }}"
     AWS_SECRET_ACCESS_KEY: "{{ restic.aws_secret_access_key }}"
     RESTIC_PASSWORD: "{{ restic.password }}"
+    BUCKET_NAME: friclu-immich
   ansible.builtin.shell:
     executable: /usr/bin/bash
     cmd: |
-      restic -r "s3:https://{{ restic.s3_url }}/{{ item.bucket }}" unlock --remove-all
-      if ! restic -r "s3:https://{{ restic.s3_url }}/{{ item.bucket }}" check; then
-        restic -r "s3:https://{{ restic.s3_url }}/{{ item.bucket }}" init
+      if ! restic -r "s3:https://{{ restic.s3_url }}/$BUCKET_NAME" check; then
+        restic -r "s3:https://{{ restic.s3_url }}/$BUCKET_NAME" unlock --remove-all
+        restic -r "s3:https://{{ restic.s3_url }}/$BUCKET_NAME" init
       fi
   register: restic_check
   ignore_errors: true
-  loop: "{{ backups }}"
 
 - name: Create restic log directory
   become: true
@@ -78,7 +78,7 @@
     minute: "0"
     user: "root"
     job: >-
-      /scripts/backup.sh "{{ restic.s3_url }}" "{{ item.bucket }}" "{{ item.path }}"
+      /scripts/backup.sh "{{ restic.s3_url }}" "{{ item.path }}"
       "{{ restic.aws_access_key_id }}" "{{ restic.aws_secret_access_key }}" "{{ restic.password }}"
       {% if item.pg_backup | default(false) %}
       "true" "{{ item.pg_host | default('localhost') }}"

@@ -39,11 +39,9 @@ all:
       backups:
         - name: friclu-vault
           path: /volumes/vault
-          bucket: friclu-vault
           hour: 21
         - name: friclu-immich
           path: /volumes/immich
-          bucket: friclu-immich
           hour: 21
           pg_backup: true
           pg_host: immich-postgresql.immich
@@ -58,19 +56,15 @@ all:
             3562
         - name: friclu-syncthing
           path: /volumes/syncthing
-          bucket: friclu-syncthing
           hour: 23
         - name: home-assistant
-          bucket: friclu-ha
           path: /volumes/home-assistant
           hour: 24
-        - name: linkding
-          bucket: friclu-linkding
+        - name: friclu-linkding
           path: /volumes/linkding
           hour: 24
         - name: friclu-n8n
           path: /volumes/n8n
-          bucket: friclu-n8n
           hour: 21
           pg_backup: true
           pg_host: n8n-rw.n8n
@@ -87,7 +81,6 @@ all:
             61383131333231653037
         - name: friclu-keycloak
           path: /volumes/keycloak
-          bucket: friclu-keycloak
           hour: 21
           pg_backup: true
           pg_host: keycloak-rw.keycloak

@@ -1,18 +1,19 @@
 #!/usr/bin/bash
 
 url="${1:?provide s3 url}"
-bucket_name="${2:?provide bucket name}"
-bucket_dir="${3:?provide bucket dir}"
-key_id="${4:?provide aws access key id}"
-secret="${5:?provide aws access secret key}"
-password="${6:?provide restic password}"
-pg_backup="${7:-}"
-pg_host="${8:-localhost}"
-pg_user="${9:-postgres}"
-pg_password="${10:-}"
-pg_db="${11:-app}"  # optional: postgres password
+bucket_dir="${2:?provide bucket dir}"
+key_id="${3:?provide aws access key id}"
+secret="${4:?provide aws access secret key}"
+password="${5:?provide restic password}"
+pg_backup="${6:-}"
+pg_host="${7:-}"
+pg_user="${8:-}"
+pg_password="${9:-}"
+pg_db="${10:-app}"
 
-pg_port="5432"  # optional: postgres port
+bucket_name="friclu-immich"
+pg_port="5432"
+
 export AWS_ACCESS_KEY_ID="$key_id"
 export AWS_SECRET_ACCESS_KEY="$secret"
 export RESTIC_PASSWORD="$password"
