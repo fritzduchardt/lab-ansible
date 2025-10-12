@@ -26,6 +26,7 @@
   ansible.builtin.shell:
     executable: /usr/bin/bash
     cmd: |
+      restic -r "s3:https://{{ restic.s3_url }}/{{ item.bucket }}" unlock --remove-all
       if ! restic -r "s3:https://{{ restic.s3_url }}/{{ item.bucket }}" check; then
         restic -r "s3:https://{{ restic.s3_url }}/{{ item.bucket }}" init
       fi
@@ -76,6 +77,13 @@
     hour: "{{ item.hour }}"
     minute: "0"
     user: "root"
-    job: /scripts/backup.sh "{{ restic.s3_url }}" "{{ item.bucket }}" "{{ item.path }}" "{{ restic.aws_access_key_id }}" "{{ restic.aws_secret_access_key }}" "{{ restic.password }}" >> /var/log/restic/{{ item.name }}.log 2>&1 # noqa: yaml[line-length]
+    job: >-
+      /scripts/backup.sh "{{ restic.s3_url }}" "{{ item.bucket }}" "{{ item.path }}"
+      "{{ restic.aws_access_key_id }}" "{{ restic.aws_secret_access_key }}" "{{ restic.password }}"
+      {% if item.pg_backup | default(false) %}
+      "true" "{{ item.pg_host | default('localhost') }}"
+      "{{ item.pg_user | default('postgres') }}" "{{ item.pg_password | default('') }}" "{{ item.pg_db | default('') }}"
+      {% endif %}
+      >> /var/log/restic/{{ item.name }}.log 2>&1
     state: present
   loop: "{{ backups }}"
