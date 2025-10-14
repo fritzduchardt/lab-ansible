@@ -103,7 +103,13 @@ main() {
   fi
 
   if [[ -z "$output_file" ]]; then
-    output_file="${input_file%.md}.pdf"
+    local output_dir="$(dirname "$input_file")/PDFs"
+    if [[ ! -e "$output_dir" ]]; then
+      mkdir "$output_dir"
+    fi
+    local output_filename="$(basename "$input_file")"
+    output_filename="${output_filename%.md}.pdf"
+    output_file="$output_dir/$output_filename"
   fi
 
   if [[ ! -f "$input_file" ]]; then
