@@ -1,0 +1,4 @@
+- name: Install restic
+  hosts: "friclu-1"
+  roles:
+    - role: scripts

@@ -102,11 +102,13 @@ main() {
     exit 1
   fi
 
+  if [[ "$input_file" == *".pdf" ]]; then
+    echo "Input file is PDF"
+    exit 0
+  fi
+
   if [[ -z "$output_file" ]]; then
-    local output_dir="$(dirname "$input_file")/PDFs"
-    if [[ ! -e "$output_dir" ]]; then
-      mkdir "$output_dir"
-    fi
+    local output_dir="$(dirname "$input_file")"
     local output_filename="$(basename "$input_file")"
     output_filename="${output_filename%.md}.pdf"
     output_file="$output_dir/$output_filename"

@@ -1,0 +1,35 @@
+---
+- name: Create scripts directory
+  become: true
+  ansible.builtin.file:
+    path: /scripts
+    state: directory
+    mode: '0755'
+    owner: 'root'
+    group: 'root'
+
+- name: Ensure jq is installed for JSON processing
+  become: true
+  ansible.builtin.package:
+    name: jq
+    state: present
+
+- name: Find all script files
+  ansible.builtin.find:
+    paths: "{{ role_path }}/files"
+    patterns: "*"
+    file_type: file
+    recurse: yes
+  register: script_files
+  delegate_to: localhost
+
+- name: Install all scripts from files
+  become: true
+  ansible.builtin.copy:
+    src: "{{ item.path }}"
+    dest: "/scripts/{{ item.path | basename }}"
+    mode: '0755'
+    owner: 'root'
+    group: 'root'
+  loop: "{{ script_files.files }}"
+  when: script_files.files | length > 0
