@@ -9,15 +9,15 @@ usage() {
   echo """Usage: $0 [options]
 
 Options:
-  -d, --dir DIR         Directory to import (default: current directory)
-  -b, --base BASE       Base path to strip from file paths (default: "")
+  -f, --file FILE       File to import (required)
+  -b, --base BASE       Base path to strip from file paths (default: directory of the file)
   -e, --endpoint URL    Weaviate endpoint URL (default: http://localhost:8080)
   -c, --class NAME      Weaviate class name to import into (default: ObsidianFile)
   -h, --help            Show this help
 
 Examples:
-  $0 --dir ./docs --base ./docs --endpoint http://weaviate.local:8080 --class Document
-  $0 -d /data/texts -b /data -e http://127.0.0.1:8080 -c MyTextClass
+  $0 --file ./docs/notes.md --base ./docs --endpoint http://weaviate.local:8080 --class Document
+  $0 -f /data/texts/note.md -b /data -e http://127.0.0.1:8080 -c MyTextClass
 """
 }
 
@@ -42,7 +42,8 @@ weaviate::import_file() {
   if [[ -n "$base_path" ]] && [[ "$file_abs" == "$base_path"* ]]; then
     rel="${file_abs#$base_path/}"
   else
-    rel="$file"
+    log::error "Base path: $base_path does not match file path: $file_abs"
+    exit 2
   fi
 
   payload="$(lib::exec jq -Rs --arg class "$class" --arg path "$rel" '{class: $class, properties: {path: $path, content: .}}' <"$file_abs")"
@@ -55,40 +56,21 @@ weaviate::import_file() {
   fi
 }
 
-weaviate::import_dir() {
-  local dir="$1"
-  local endpoint="$2"
-  local class="$3"
-  local base="$4"
-  local files
-
-  if [[ ! -d "$dir" ]]; then
-    log::error "Directory not found: $dir"
-    return 1
-  fi
-
-  mapfile -t files < <(lib::exec find "$dir" -name "*.md" -type f | lib::exec grep -v ".trash")
-
-  for file in "${files[@]}"; do
-    weaviate::import_file "$endpoint" "$class" "$base" "$file"
-  done
-}
-
 main() {
-  local dir
+  local file
   local base
   local endpoint
   local class
 
-  dir="${DIR:-.}"
+  file="${FILE}"
   endpoint="${ENDPOINT:-http://weaviate.weaviate}"
   class="${CLASS:-ObsidianFile}"
   base="${BASE:-/volumes/syncthing}"
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
-      -d|--dir)
-        dir="$2"
+      -f|--file)
+        file="$2"
         shift 2
         ;;
       -b|--base)
@@ -115,11 +97,27 @@ main() {
     esac
   done
 
-  if [[ -z "$base" ]]; then
-    base="$dir"
+  if [[ ! "$file" =~ [Pp]rotocol|[Jj]ournal\.md ]]; then
+    log::info "Not processing: $file"
+    exit 0
   fi
 
-  weaviate::import_dir "$dir" "$endpoint" "$class" "$base"
+  if [[ -z "$file" ]]; then
+    log::error "No file specified"
+    usage
+    exit 1
+  fi
+
+  if [[ ! -f "$file" ]]; then
+    log::error "File not found: $file"
+    exit 1
+  fi
+
+  if [[ -z "$base" ]]; then
+    base="$(dirname -- "$file")"
+  fi
+
+  weaviate::import_file "$endpoint" "$class" "$base" "$file"
 }
 
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
