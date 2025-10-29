@@ -59,6 +59,8 @@ EOF
     unset PGPASSWORD
 fi
 
+/usr/local/bin/restic unlock
+
 /usr/local/bin/restic -r "s3:https://$url/$bucket_name" backup --skip-if-unchanged "$bucket_dir"
 cat <<EOF | curl --data-binary @- pushgateway-prometheus-pushgateway.pushgateway:9091/metrics/job/backup
 restic_backup_success{dir="$bucket_dir"} $?
