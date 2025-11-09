@@ -1,5 +1,17 @@
-#!/usr/bin/env bash
+#!/usr/bin/bash
+
 set -eo pipefail
+
+SCRIPT_DIR="$(dirname -- "$0")"
+source "$SCRIPT_DIR/log.sh"
+source "$SCRIPT_DIR/utils.sh"
+
+S3_URL=""
+BUCKET_NAME=""
+AWS_ACCESS_KEY_ID=""
+AWS_SECRET_ACCESS_KEY=""
+RESTIC_PASSWORD=""
+OUT_DIR=""
 
 usage() {
   echo """
@@ -9,7 +21,7 @@ Restore a restic backup from S3-compatible storage.
 
 ARGUMENTS:
   url        S3 endpoint URL (e.g., s3.amazonaws.com)
-  bucket     Bucket type (ha|immich|syncthing|vault)
+  bucket     S3 bucket name
   key        AWS Access Key ID
   secret     AWS Secret Access Key
   password   Restic repository password
@@ -39,12 +51,12 @@ EXAMPLES:
 }
 
 parse_args() {
-  local url
-  local bucket
-  local key
-  local secret
-  local password
-  local out
+  local url=""
+  local bucket=""
+  local key=""
+  local secret=""
+  local password=""
+  local out=""
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -90,54 +102,32 @@ parse_args() {
         elif [[ -z "$out" ]]; then
           out="$1"
         else
-          echo "Ignoring extra argument: $1"
+          log::warn "Ignoring extra argument: $1"
         fi
         shift
         ;;
     esac
   done
 
-  url="${url:?provide s3 url}"
-  bucket="${bucket:?provide bucket type (ha|immich|syncthing|vault)}"
-  key="${key:?provide aws access key id}"
-  secret="${secret:?provide aws access secret key}"
-  password="${password:?provide restic password}"
+  S3_URL="${url:?provide s3 url}"
+  BUCKET_NAME="${bucket:?provide bucket}"
+  AWS_ACCESS_KEY_ID="${key:?provide aws access key id}"
+  AWS_SECRET_ACCESS_KEY="${secret:?provide aws access secret key}"
+  RESTIC_PASSWORD="${password:?provide restic password}"
+  OUT_DIR="${out:-/tmp/restore-$BUCKET_NAME}"
 
-  # Validate bucket type
-  if [[ "$bucket" != "friclu-ha" && "$bucket" != "friclu-immich" && "$bucket" != "friclu-syncthing" && "$bucket" != "friclu-vault" ]]; then
-    echo "Invalid bucket type: $bucket. Allowed: ha, immich, syncthing, vault"
-    exit 2
-  fi
+  export AWS_ACCESS_KEY_ID
+  export AWS_SECRET_ACCESS_KEY
+  export RESTIC_PASSWORD
+}
 
-  out="${out:-/tmp/restore-$bucket}"
-
-  export AWS_ACCESS_KEY_ID="$key"
-  export AWS_SECRET_ACCESS_KEY="$secret"
-  export RESTIC_PASSWORD="$password"
-
-  s3_url="$url"
-  bucket_name="$bucket"
-  out_dir="$out"
+prepare_output_directory() {
+  log::info "Preparing output directory: $OUT_DIR"
+  lib::exec mkdir -p "$OUT_DIR"
 }
 
 perform_restore() {
-  local s3
-  local bucket
-  local outdir
-  local rc
-  s3="$s3_url"
-  bucket="$bucket_name"
-  outdir="$out_dir"
-
-  echo "Preparing output directory: $outdir"
-  mkdir -p "$outdir"
-  rc=$?
-  if [[ $rc -ne 0 ]]; then
-    echo "Failed to prepare output directory: $outdir"
-    exit $rc
-  fi
-
-  echo "Starting restic restore for bucket $bucket from s3://$s3/$bucket to $outdir"
+  log::info "Starting restic restore for bucket $BUCKET_NAME from s3://$S3_URL/$BUCKET_NAME to $OUT_DIR"
 
   # The following restic restore operation will connect to the S3-compatible
   # storage over HTTPS to download the snapshot data. It requires network
@@ -145,19 +135,18 @@ perform_restore() {
   # and AWS_SECRET_ACCESS_KEY) and the repository password (RESTIC_PASSWORD).
   # The restic client will fetch the metadata, determine the latest snapshot,
   # and stream the files to the target directory.
-  "/usr/local/bin/restic" -r "s3:https://$s3/$bucket" restore latest --target "$outdir"
-  rc=$?
-
-  if [[ $rc -eq 0 ]]; then
-    echo "Restore completed successfully to $outdir"
-  else
-    echo "Restore failed with exit code $rc"
-    exit $rc
+  if ! lib::exec "/usr/local/bin/restic" -r "s3:https://$S3_URL/$BUCKET_NAME" \
+    restore latest --target "$OUT_DIR"; then
+    log::error "Failed to restore from restic"
+    exit 2
   fi
+
+  log::info "Restore completed successfully to $OUT_DIR"
 }
 
 main() {
   parse_args "$@"
+  prepare_output_directory
   perform_restore
 }
 
