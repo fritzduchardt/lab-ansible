@@ -88,15 +88,18 @@ weaviate::find_object_id() {
 }
 EOF
 )"
-  resp="$(lib::exec echo $payload | curl -sS -X POST -H "Content-Type: application/json" -d @- "$endpoint/v1/graphql")"
+  resp="$(lib::exec echo "$payload" \
+    | lib::exec curl -sS -X POST -d @- -H "Content-Type: application/json" "$endpoint/v1/graphql")"
   rc=$?
   if [[ $rc -ne 0 ]]; then
     log::error "GraphQL request failed for search (exit $rc)"
+    log::error "Response: $resp"
     return 3
   fi
   id="$(lib::exec jq -r --arg class "$class" '.data.Get[$class][0]._additional.id' <<<"$resp")"
   if [[ "$id" == "null" ]] || [[ -z "$id" ]]; then
     log::warn "No object found for path: $rel"
+    log::debug "Response: $resp"
     echo ""
     return 0
   fi
@@ -124,7 +127,7 @@ weaviate::delete_file() {
 
   if [[ -z "$id" ]]; then
     log::warn "Nothing to delete for file: $file"
-    return 0
+    return 2
   fi
 
   if ! lib::exec curl -sS -X DELETE "$endpoint/v1/objects/$id"; then
@@ -204,12 +207,15 @@ main() {
     base="$(lib::exec dirname -- "$file")"
   fi
 
-  if [[ "$delete_mode" == "1" ]]; then
-    weaviate::delete_file "$endpoint" "$class" "$base" "$file"
-    exit $?
-  fi
+  # we always delete, to avoid double indexation
+  while weaviate::delete_file "$endpoint" "$class" "$base" "$file" \
+    && [[ $? == 0 ]]; do
+    log::info "Deleting file"
+  done
 
-  weaviate::import_file "$endpoint" "$class" "$base" "$file"
+  if [[ "$delete_mode" == "0" ]]; then
+    weaviate::import_file "$endpoint" "$class" "$base" "$file"
+  fi
 }
 
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then

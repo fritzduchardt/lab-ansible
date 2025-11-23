@@ -39,10 +39,10 @@ all:
       backups:
         - name: friclu-vault
           path: /volumes/vault
-          hour: 21
+          hour: 18
         - name: friclu-immich
           path: /volumes/immich
-          hour: 21
+          hour: 19
           pg_backup: true
           pg_host: immich-rw.immich
           pg_user: "immich"
@@ -59,13 +59,13 @@ all:
             32393036303162613762
         - name: friclu-syncthing
           path: /volumes/syncthing
-          hour: 23
+          hour: 20
         - name: friclu-linkding
           path: /volumes/linkding
-          hour: 24
+          hour: 21
         - name: friclu-n8n
           path: /volumes/n8n
-          hour: 21
+          hour: 22
           pg_backup: true
           pg_host: n8n-rw.n8n
           pg_user: "app"
@@ -82,7 +82,7 @@ all:
             61383131333231653037
         - name: friclu-keycloak
           path: /volumes/keycloak
-          hour: 21
+          hour: 23
           pg_backup: true
           pg_host: keycloak-rw.keycloak
           pg_user: "app"
