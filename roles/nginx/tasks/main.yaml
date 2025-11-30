@@ -1,0 +1,22 @@
+---
+- name: Install nginx package
+  become: true
+  ansible.builtin.package:
+    name: nginx
+    state: latest
+
+- name: Deploy nginx config
+  become: true
+  ansible.builtin.template:
+    src: nginx.conf.j2
+    dest: /etc/nginx/nginx.conf
+    mode: '0644'
+  notify:
+    - Reload nginx service
+
+- name: Ensure nginx is enabled and started
+  become: true
+  ansible.builtin.service:
+    name: nginx
+    enabled: true
+    state: started
