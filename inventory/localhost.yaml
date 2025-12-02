@@ -3,7 +3,10 @@ all:
     localhost:
       ansible_connection: local
       wg_address: 10.7.0.5/32
-
+      peers:
+        - pub_key: O4LXdtqmhhQ5L8/WWt9ag70LKgQDr1bXob+teWQW1lE=
+          allowed_ips: 10.7.0.0/24
+          endpoint: 212.227.63.239
 duckdns:
   hosts:
     localhost:

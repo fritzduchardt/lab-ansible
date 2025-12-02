@@ -1,0 +1,5 @@
+- name: Install public ssh key
+  hosts: "all"
+  roles:
+    - role: ssh
+      tags: ssh

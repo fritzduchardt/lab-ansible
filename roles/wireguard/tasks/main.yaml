@@ -14,6 +14,23 @@
     owner: root
     group: root
 
+- name: Persist net.ipv4.ip_forward in /etc/sysctl.d/99-wireguard.conf
+  become: true
+  ansible.builtin.copy:
+    dest: /etc/sysctl.d/99-wireguard.conf
+    content: |
+      net.ipv4.ip_forward = 1
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Enable ip forwarding at runtime
+  become: true
+  ansible.builtin.sysctl:
+    name: net.ipv4.ip_forward
+    value: '1'
+    reload: yes
+
 - name: Generate WireGuard private key if missing
   become: true
   ansible.builtin.shell:
@@ -74,17 +91,11 @@
     mode: '0600'
     owner: root
     group: root
-
-- name: Enable and start WireGuard interface service
-  become: true
-  ansible.builtin.systemd:
-    name: "wg-quick@{{ wireguard_iface }}"
-    enabled: true
-    state: started
+  notify:
+    - Restart and Reload systemd daemon
 
 - name: Show WireGuard public key for remote peer configuration
   ansible.builtin.debug:
     msg:
       - "WireGuard local public key: {{ wg_public_key }}"
       - "Provide this public key to the remote peer to allow the VM to connect"
-

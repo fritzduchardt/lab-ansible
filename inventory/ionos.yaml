@@ -4,3 +4,12 @@ all:
       ansible_host: ionos
       ansible_user: root
       wg_address: 10.7.0.4/32
+      peers:
+        - pub_key: pRtnD+Rb5rUanNE8xmeRcpPHx1+m/CUMQd1AndNj8Vw=
+          allowed_ips: 10.7.0.5/32 # localhost
+        - pub_key: wl1+wIamwH4gaZuzlK3F8BaVv9EU9clBQ8IyLDPngnY=
+          allowed_ips: 10.7.0.3/32 # friclu 2
+        - pub_key: XFEYUKfS9SiKHXGW9RPOmYDWkBEdBtD3GKoS7T6A9Ag=
+          allowed_ips: 10.7.0.6/32 # friclu 3
+        - pub_key: BFOf0l8bfWrU/MScLvHah0YNcMLL7aJ1jiSe80FnbRM=
+          allowed_ips: 10.7.0.2/32 # friclu 1

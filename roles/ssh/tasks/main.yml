@@ -1,0 +1,15 @@
+---
+- name: Fail when no public key source provided
+  ansible.builtin.fail:
+    msg: "Either ssh_public_key or ssh_public_key_file must be provided to the ssh_key role"
+  when: (ssh_public_key | default('') | length == 0) and (ssh_public_key_file | default('') | length == 0)
+
+- name: Add public key to user's authorized_keys from string when provided
+  ansible.builtin.authorized_key:
+    user: "{{ ssh_key_user }}"
+    key: "{{ ssh_public_key }}"
+    state: "{{ ssh_key_state }}"
+    manage_dir: yes
+    path: "{{ ssh_key_path }}"
+    comment: "{{ ssh_key_comment }}"
+  when: ssh_public_key | default('') | length > 0
