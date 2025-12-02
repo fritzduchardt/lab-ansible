@@ -1,4 +1,0 @@
-- name: Install packages for nginx
-  hosts: "all"
-  roles:
-    - role: nginx

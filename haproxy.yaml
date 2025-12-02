@@ -1,0 +1,5 @@
+- name: Install packages for haproxy
+  hosts: "all"
+  roles:
+    - role: haproxy
+      tags: haproxy
