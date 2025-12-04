@@ -17,7 +17,7 @@
 -A PREROUTING -i {{ wireguard_iface }} -p tcp --dport {{ src }} -j DNAT --to-destination {{ target_ip }}:{{ port }}
 -A POSTROUTING -o eth0 -d {{ target_ip }} -p tcp --dport {{ port }} -j MASQUERADE
 {% endfor %}
-# Masquerade traffic originated from Tailscale network to the target IP so replies are routed back
+# Masquerade traffic originated from Wireguard network to the target IP so replies are routed back
 COMMIT
 
 *filter
@@ -34,4 +34,3 @@ COMMIT
 -A FORWARD -i eth0 -o {{ wireguard_iface }} -p tcp --sport {{ port }} -s {{ target_ip }} -j ACCEPT
 {% endfor %}
 COMMIT
-

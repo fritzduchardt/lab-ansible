@@ -1,7 +1,7 @@
 ---
 - name: Ensure ip forwarding is enabled
   become: true
-  ansible.builtin.sysctl:
+  ansible.posix.sysctl:
     name: net.ipv4.ip_forward
     value: '1'
     state: present
@@ -50,4 +50,3 @@
   ansible.builtin.command:
     cmd: iptables-restore /etc/iptables/iptables-wireguard.rules
   changed_when: true
-

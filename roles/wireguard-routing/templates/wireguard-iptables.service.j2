@@ -1,5 +1,5 @@
 [Unit]
-Description=Load iptables rules for Tailscale forwarding
+Description=Load iptables rules for Wireguard forwarding
 After=network-online.target
 Wants=network-online.target
 
@@ -12,4 +12,3 @@ RemainAfterExit=yes
 
 [Install]
 WantedBy=multi-user.target
-
