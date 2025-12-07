@@ -129,33 +129,43 @@ process_all_images() {
   local file="$1"
   local dir
   dir=$(dirname "$file")
-  local image_files
-  image_files=($(lib::exec find "$dir" -maxdepth 1 \( -name "*.png" -o -name "*.jpg" \) -type f -print0 | xargs -0 ls -tr 2>/dev/null))
-  if [[ ${#image_files[@]} -eq 0 ]]; then
-    return
-  fi
+  local imgs_in_dir
+  imgs_in_dir=($(lib::exec find "$dir" -maxdepth 1 \( -name "*.png" -o -name "*.jpg" \) -type f -print0 | xargs -0 ls -tr 2>/dev/null))
+  local imgs_in_file="$file.tmp"
+  # clean file from non existing images
+  while IFS= read -r line; do
+    if [[ "$line" =~ ^'!\[\]\(([^)]+\.(png|jpg))\)'$ ]]; then
+      local img="${BASH_REMATCH[1]}"
+      if [[ -f "$dir/$img" ]]; then
+        echo "$line" >> "$imgs_in_file"
+      fi
+    else
+      echo "$line" >> "$imgs_in_file"
+    fi
+  done < "$file"
   local images_to_add=()
-  for png in "${image_files[@]}"; do
+  for img in "${imgs_in_dir[@]}"; do
     local base
-    base=$(basename "$png")
-    if ! grep -q "$base" "$file"; then
+    base=$(basename "$img")
+    if ! grep -q "$base" "$imgs_in_file"; then
       images_to_add+=("$base")
     fi
   done
   if [[ ${#images_to_add[@]} -eq 0 ]]; then
-    log::info "All image links already present in $file"
+    lib::exec mv "$imgs_in_file" "$file"
+    log::info "Removed invalid image links from $file"
     return
   fi
   log::info "Adding image links to $file"
+  local final_temp="$file.tmp2"
   local inserted=0
-  local temp_file="$file.tmp"
   local found_headline=0
   local found_paragraph=0
   while IFS= read -r line; do
     if [[ $inserted -eq 0 && $found_headline -eq 1 && $found_paragraph -eq 1 && "$line" == "" ]]; then
       for img in "${images_to_add[@]}"; do
-        echo "" >> "$temp_file"
-        echo "![]($img)" >> "$temp_file"
+        echo "" >> "$final_temp"
+        echo "![]($img)" >> "$final_temp"
       done
       inserted=1
     fi
@@ -164,15 +174,16 @@ process_all_images() {
     elif [[ $found_headline -eq 1 && "$line" != "" ]]; then
       found_paragraph=1
     fi
-    echo "$line" >> "$temp_file"
-  done < "$file"
+    echo "$line" >> "$final_temp"
+  done < "$imgs_in_file"
   if [[ $inserted -eq 0 ]]; then
     for img in "${images_to_add[@]}"; do
-      echo "" >> "$temp_file"
-      echo "![]($img)" >> "$temp_file"
+      echo "" >> "$final_temp"
+      echo "![]($img)" >> "$final_temp"
     done
   fi
-  lib::exec mv "$temp_file" "$file"
+  lib::exec mv "$final_temp" "$file"
+  lib::exec rm "$imgs_in_file"
 }
 
 main() {
