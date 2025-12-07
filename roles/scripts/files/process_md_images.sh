@@ -102,6 +102,10 @@ process_file() {
         fi
         echo "$line" >> "$temp_file"
       done < "$file"
+      if [[ $inserted -eq 0 ]]; then
+          echo """
+![]($base.png)""" >> "$temp_file"
+      fi
       lib::exec mv "$temp_file" "$file"
     else
       log::info "Image link already present in $file"
