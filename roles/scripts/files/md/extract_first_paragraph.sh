@@ -3,8 +3,8 @@
 set -eo pipefail
 
 SCRIPT_DIR="$(dirname -- "$0")"
-source "$SCRIPT_DIR/log.sh"
-source "$SCRIPT_DIR/utils.sh"
+source "$SCRIPT_DIR/../log.sh"
+source "$SCRIPT_DIR/../utils.sh"
 
 FOLDER=""
 FILE=""
