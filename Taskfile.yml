@@ -27,3 +27,11 @@ tasks:
         vars:
           INVENTORY: inventory/friclu.yaml
           PLAYBOOK: ssh.yaml
+
+  ansible:run:scripts:
+    desc: Run ssh.yaml playbook with friclu inventory
+    cmds:
+      - task: ansible:run
+        vars:
+          INVENTORY: inventory/friclu.yaml
+          PLAYBOOK: scripts.yaml

@@ -1,5 +1,5 @@
 - name: Install public ssh key
-  hosts: "all"
+  hosts: "friclu-1"
   roles:
     - role: ssh
       tags: ssh
