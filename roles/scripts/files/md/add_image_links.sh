@@ -6,21 +6,19 @@ SCRIPT_DIR="$(dirname -- "$0")"
 source "$SCRIPT_DIR/../log.sh"
 source "$SCRIPT_DIR/../utils.sh"
 
-FOLDER=""
 FILE=""
 
 usage() {
   cat << EOF
-Usage: $0 [OPTIONS] [FOLDER]
+Usage: $0 -f FILE
 
-Iterate recursively over markdown files in FOLDER and for each file that has a matching image file (PNG or JPG) in the same folder, add an image link after the first text paragraph if not already present.
+Process the specified markdown FILE and add an image link after the first text paragraph if a matching image file (PNG or JPG) exists in the same folder and is not already present.
 
 OPTIONS:
-  -f FILE  Process only the specified markdown FILE
+  -f FILE  Process the specified markdown FILE
   -h       Show this help message
 
 EXAMPLES:
-  $0 /path/to/folder
   $0 -f /path/to/file.md
   $0 -h
 EOF
@@ -43,34 +41,23 @@ parse_args() {
         exit 0
         ;;
       *)
-        if [[ -z "$FOLDER" ]]; then
-          FOLDER="$1"
-        else
-          log::error "Unexpected argument: $1"
-          usage
-          exit 1
-        fi
-        shift
+        log::error "Unexpected argument: $1"
+        usage
+        exit 1
         ;;
     esac
   done
-  if [[ -n "$FILE" ]]; then
-    if [[ ! -f "$FILE" ]]; then
-      log::error "FILE does not exist or is not a file: $FILE"
-      exit 1
-    fi
-    if [[ "$FILE" != *.md ]]; then
-      log::error "FILE must have .md extension: $FILE"
-      exit 1
-    fi
-  elif [[ -n "$FOLDER" ]]; then
-    if [[ ! -d "$FOLDER" ]]; then
-      log::error "FOLDER does not exist or is not a directory: $FOLDER"
-      exit 1
-    fi
-  else
-    log::error "Either FILE with -f or FOLDER is required"
+  if [[ -z "$FILE" ]]; then
+    log::error "FILE with -f is required"
     usage
+    exit 1
+  fi
+  if [[ ! -f "$FILE" ]]; then
+    log::error "FILE does not exist or is not a file: $FILE"
+    exit 1
+  fi
+  if [[ "$FILE" != *.md ]]; then
+    log::error "FILE must have .md extension: $FILE"
     exit 1
   fi
 }
@@ -120,17 +107,9 @@ process_file() {
 
 main() {
   parse_args "$@"
-  if [[ -n "$FILE" ]]; then
-    log::info "Processing single file: $FILE"
-    process_file "$FILE"
-    log::info "Processing completed"
-  else
-    log::info "Starting processing of markdown files in $FOLDER"
-    while IFS= read -r file; do
-      process_file "$file"
-    done < <(lib::exec find "$FOLDER" -name "*.md" -type f)
-    log::info "Processing completed"
-  fi
+  log::info "Processing file: $FILE"
+  process_file "$FILE"
+  log::info "Processing completed"
 }
 
 main "$@"
