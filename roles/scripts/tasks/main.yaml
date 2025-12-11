@@ -23,11 +23,31 @@
   register: script_files
   delegate_to: localhost
 
+- name: Find all directories in files
+  ansible.builtin.find:
+    paths: "{{ role_path }}/files"
+    file_type: directory
+    recurse: yes
+  register: script_dirs
+  delegate_to: localhost
+
+- name: Create script directories
+  become: true
+  ansible.builtin.file:
+    path: "/scripts/{{ item.path | replace(role_path + '/files/', '') }}"
+    state: directory
+    recurse: yes
+    mode: '0755'
+    owner: 'root'
+    group: 'root'
+  loop: "{{ script_dirs.files }}"
+  when: script_dirs.files | length > 0
+
 - name: Install all scripts from files
   become: true
   ansible.builtin.copy:
     src: "{{ item.path }}"
-    dest: "/scripts/{{ item.path | basename }}"
+    dest: "/scripts/{{ item.path | replace(role_path + '/files/', '') }}"
     mode: '0755'
     owner: 'root'
     group: 'root'
