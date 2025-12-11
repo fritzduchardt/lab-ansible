@@ -12,7 +12,7 @@ usage() {
   cat << EOF
 Usage: $0 -f FILE
 
-Process the specified markdown FILE and add an image link after the first text paragraph if a matching image file (PNG or JPG) exists in the same folder and is not already present.
+Process the specified markdown FILE and add image links after the first text paragraph for all matching image files (PNG or JPG) that start with the same base name as the file, sorted in chronological order (by modification time, oldest first), if they are not already present.
 
 OPTIONS:
   -f FILE  Process the specified markdown FILE
@@ -68,41 +68,53 @@ process_file() {
   base=$(basename "$file" .md)
   local dir
   dir=$(dirname "$file")
-  local image_file=""
-  if [[ -f "$dir/$base.png" ]]; then
-    image_file="$base.png"
-  elif [[ -f "$dir/$base.jpg" ]]; then
-    image_file="$base.jpg"
+  local images=()
+  while IFS= read -r img; do
+    images+=("$img")
+  done < <(ls -tr "$dir/$base"*.png "$dir/$base"*.jpg 2>/dev/null)
+  if [[ ${#images[@]} -eq 0 ]]; then
+    log::info "No matching images found for $file"
+    return
   fi
-  if [[ -n "$image_file" ]]; then
-    if ! grep -q "$image_file" "$file"; then
-      log::info "Adding image link to $file"
-      local inserted=0
-      local temp_file="$file.tmp"
-      local found_headline=0
-      local found_paragraph=0
-      while IFS= read -r line; do
-        if [[ $inserted -eq 0 && $found_headline -eq 1 && $found_paragraph -eq 1 && "$line" == "" ]]; then
-          echo "" >> "$temp_file"
-          echo "![]($image_file)" >> "$temp_file"
-          inserted=1
-        fi
-        if [[ $found_headline -eq 0 && "$line" =~ ^# ]]; then
-          found_headline=1
-        elif [[ $found_headline -eq 1 && "$line" != "" ]]; then
-          found_paragraph=1
-        fi
-        echo "$line" >> "$temp_file"
-      done < "$file"
-      if [[ $inserted -eq 0 ]]; then
-        echo "" >> "$temp_file"
-        echo "![]($image_file)" >> "$temp_file"
-      fi
-      lib::exec mv "$temp_file" "$file"
-    else
-      log::info "Image link already present in $file"
+  local to_add=()
+  for img in "${images[@]}"; do
+    local img_name
+    img_name=$(basename "$img")
+    if ! grep -q "$img_name" "$file"; then
+      to_add+=("$img_name")
     fi
+  done
+  if [[ ${#to_add[@]} -eq 0 ]]; then
+    log::info "All matching images already present in $file"
+    return
   fi
+  log::info "Adding image links to $file"
+  local inserted=0
+  local temp_file="$file.tmp"
+  local found_headline=0
+  local found_paragraph=0
+  while IFS= read -r line; do
+    if [[ $inserted -eq 0 && $found_headline -eq 1 && $found_paragraph -eq 1 && "$line" == "" ]]; then
+      echo "" >> "$temp_file"
+      for img in "${to_add[@]}"; do
+        echo "![]($img)" >> "$temp_file"
+      done
+      inserted=1
+    fi
+    if [[ $found_headline -eq 0 && "$line" =~ ^# ]]; then
+      found_headline=1
+    elif [[ $found_headline -eq 1 && "$line" != "" ]]; then
+      found_paragraph=1
+    fi
+    echo "$line" >> "$temp_file"
+  done < "$file"
+  if [[ $inserted -eq 0 ]]; then
+    echo "" >> "$temp_file"
+    for img in "${to_add[@]}"; do
+      echo "![]($img)" >> "$temp_file"
+    done
+  fi
+  lib::exec mv "$temp_file" "$file"
 }
 
 main() {
