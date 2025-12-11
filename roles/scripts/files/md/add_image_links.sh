@@ -8,7 +8,6 @@ source "$SCRIPT_DIR/../utils.sh"
 
 FOLDER=""
 FILE=""
-ALL_IMAGES="${ALL_IMAGES:-false}"
 
 usage() {
   cat << EOF
@@ -18,13 +17,11 @@ Iterate recursively over markdown files in FOLDER and for each file that has a m
 
 OPTIONS:
   -f FILE  Process only the specified markdown FILE
-  --all-images  Add all PNG and JPG images in the folder to each markdown file, ordered by creation date
   -h       Show this help message
 
 EXAMPLES:
   $0 /path/to/folder
   $0 -f /path/to/file.md
-  $0 --all-images /path/to/folder
   $0 -h
 EOF
 }
@@ -40,10 +37,6 @@ parse_args() {
         fi
         FILE="$2"
         shift 2
-        ;;
-      --all-images)
-        ALL_IMAGES=true
-        shift
         ;;
       -h|--help)
         usage
@@ -125,83 +118,16 @@ process_file() {
   fi
 }
 
-process_all_images() {
-  local file="$1"
-  local dir
-  dir=$(dirname "$file")
-  local imgs_in_dir
-  imgs_in_dir=($(lib::exec find "$dir" -maxdepth 1 \( -name "*.png" -o -name "*.jpg" \) -type f -print0 | xargs -0 ls -tr 2>/dev/null))
-  local imgs_in_file="$file.tmp"
-  # clean file from non existing images
-  while IFS= read -r line; do
-    if [[ "$line" =~ ^'!\[\]\(([^)]+\.(png|jpg))\)'$ ]]; then
-      local img="${BASH_REMATCH[1]}"
-      if [[ -f "$dir/$img" ]]; then
-        echo "$line" >> "$imgs_in_file"
-      fi
-    else
-      echo "$line" >> "$imgs_in_file"
-    fi
-  done < "$file"
-  local images_to_add=()
-  for img in "${imgs_in_dir[@]}"; do
-    local base
-    base=$(basename "$img")
-    if ! grep -q "$base" "$imgs_in_file"; then
-      images_to_add+=("$base")
-    fi
-  done
-  if [[ ${#images_to_add[@]} -eq 0 ]]; then
-    lib::exec mv "$imgs_in_file" "$file"
-    log::info "Removed invalid image links from $file"
-    return
-  fi
-  log::info "Adding image links to $file"
-  local final_temp="$file.tmp2"
-  local inserted=0
-  local found_headline=0
-  local found_paragraph=0
-  while IFS= read -r line; do
-    if [[ $inserted -eq 0 && $found_headline -eq 1 && $found_paragraph -eq 1 && "$line" == "" ]]; then
-      for img in "${images_to_add[@]}"; do
-        echo "" >> "$final_temp"
-        echo "![]($img)" >> "$final_temp"
-      done
-      inserted=1
-    fi
-    if [[ $found_headline -eq 0 && "$line" =~ ^# ]]; then
-      found_headline=1
-    elif [[ $found_headline -eq 1 && "$line" != "" ]]; then
-      found_paragraph=1
-    fi
-    echo "$line" >> "$final_temp"
-  done < "$imgs_in_file"
-  if [[ $inserted -eq 0 ]]; then
-    for img in "${images_to_add[@]}"; do
-      echo "" >> "$final_temp"
-      echo "![]($img)" >> "$final_temp"
-    done
-  fi
-  lib::exec mv "$final_temp" "$file"
-  lib::exec rm "$imgs_in_file"
-}
-
 main() {
   parse_args "$@"
-  local process_func
-  if [[ "$ALL_IMAGES" == "true" ]]; then
-    process_func=process_all_images
-  else
-    process_func=process_file
-  fi
   if [[ -n "$FILE" ]]; then
     log::info "Processing single file: $FILE"
-    $process_func "$FILE"
+    process_file "$FILE"
     log::info "Processing completed"
   else
     log::info "Starting processing of markdown files in $FOLDER"
     while IFS= read -r file; do
-      $process_func "$file"
+      process_file "$file"
     done < <(lib::exec find "$FOLDER" -name "*.md" -type f)
     log::info "Processing completed"
   fi
