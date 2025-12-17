@@ -3,7 +3,7 @@ working_dir = $(shell pwd)
 home_dir = $(HOME)
 cmd = ansible-playbook -i /work/inventory/$(cluster).yaml --become --vault-password-file=/work/.ansible-password
 # renovate: datasource=github-releases depName="kubernetes/kubernetes"
-k8s_version = 1.32.8
+k8s_version = 1.35.0
 # renovate: datasource=github-releases depName="kubernetes-sigs/kubespray"
 kubespray_version = v2.28.1
 
