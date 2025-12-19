@@ -88,7 +88,8 @@ send_postgres_metrics() {
     local result="$2"
 
     # Send PostgreSQL backup metrics to Prometheus pushgateway
-    cat <<EOF | lib::exec curl --data-binary @- pushgateway-prometheus-pushgateway.pushgateway:9091/metrics/job/backup
+    cat <<EOF \
+      | lib::exec curl --data-binary @- pushgateway-prometheus-pushgateway.monitoring:9091/metrics/job/backup
 postgres_backup_success{dir="$backup_dir"} $result
 EOF
 }
@@ -129,7 +130,8 @@ send_restic_backup_metrics() {
     local result="$2"
 
     # Send restic backup metrics to Prometheus pushgateway
-    if cat <<EOF | lib::exec curl --data-binary @- pushgateway-prometheus-pushgateway.pushgateway:9091/metrics/job/backup; then
+    if cat <<EOF \
+      | lib::exec curl --data-binary @- pushgateway-prometheus-pushgateway.monitoring:9091/metrics/job/backup; then
 restic_backup_success{dir="$backup_dir"} $result
 EOF
         log::info "Successfully sent restic backup metrics to Prometheus"
@@ -160,7 +162,7 @@ send_restic_housekeeping_metrics() {
     local result="$2"
 
     # Send restic housekeeping metrics to Prometheus pushgateway
-    if cat <<EOF | lib::exec curl --data-binary @- pushgateway-prometheus-pushgateway.pushgateway:9091/metrics/job/backup; then
+    if cat <<EOF | lib::exec curl --data-binary @- pushgateway-prometheus-pushgateway.monitoring:9091/metrics/job/backup; then
 restic_backup_housekeeping_success{dir="$backup_dir"} $result
 EOF
         log::info "Successfully sent restic housekeeping metrics to Prometheus"

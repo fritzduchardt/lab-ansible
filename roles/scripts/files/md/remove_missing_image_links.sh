@@ -6,21 +6,19 @@ SCRIPT_DIR="$(dirname -- "$0")"
 source "$SCRIPT_DIR/../log.sh"
 source "$SCRIPT_DIR/../utils.sh"
 
-FOLDER=""
-FILE=""
+INPUT_FILE=""
+MD_FILE=""
 
 usage() {
   cat << EOF
-Usage: $0 [OPTIONS] [FOLDER]
+Usage: $0 -f FILE [OPTIONS]
 
-Iterate recursively over markdown files in FOLDER and remove all image links that reference files not existing in the directory.
+Remove all image links that reference files not existing in the directory from the specified markdown FILE.
 
 OPTIONS:
-  -f FILE  Process only the specified markdown FILE
   -h       Show this help message
 
 EXAMPLES:
-  $0 /path/to/folder
   $0 -f /path/to/file.md
   $0 -h
 EOF
@@ -35,7 +33,7 @@ parse_args() {
           usage
           exit 1
         fi
-        FILE="$2"
+        INPUT_FILE="$2"
         shift 2
         ;;
       -h|--help)
@@ -43,33 +41,14 @@ parse_args() {
         exit 0
         ;;
       *)
-        if [[ -z "$FOLDER" ]]; then
-          FOLDER="$1"
-        else
-          log::error "Unexpected argument: $1"
-          usage
-          exit 1
-        fi
-        shift
+        log::error "Unexpected argument: $1"
+        usage
+        exit 1
         ;;
     esac
   done
-  if [[ -n "$FILE" ]]; then
-    if [[ ! -f "$FILE" ]]; then
-      log::error "FILE does not exist or is not a file: $FILE"
-      exit 1
-    fi
-    if [[ "$FILE" != *.md ]]; then
-      log::error "FILE must have .md extension: $FILE"
-      exit 1
-    fi
-  elif [[ -n "$FOLDER" ]]; then
-    if [[ ! -d "$FOLDER" ]]; then
-      log::error "FOLDER does not exist or is not a directory: $FOLDER"
-      exit 1
-    fi
-  else
-    log::error "Either FILE with -f or FOLDER is required"
+  if [[ -z "$INPUT_FILE" ]]; then
+    log::error "FILE with -f is required"
     usage
     exit 1
   fi
@@ -109,17 +88,26 @@ remove_missing_image_links() {
 main() {
   parse_args "$@"
 
-  if [[ -n "$FILE" ]]; then
-    log::info "Processing single file: $FILE"
-    remove_missing_image_links "$FILE"
-    log::info "Processing completed"
+  log::info "Processing file: $INPUT_FILE"
+  if [[ "$INPUT_FILE" == *.md ]]; then
+    MD_FILE="$INPUT_FILE"
+  elif [[ "$INPUT_FILE" == *.png || "$INPUT_FILE" == *.jpg ]]; then
+    local base
+    base=$(basename "$INPUT_FILE" | sed 's/\-.*$//')
+    local dir
+    dir=$(dirname "$INPUT_FILE")
+    MD_FILE="$dir/$base.md"
+    if [[ ! -f "$MD_FILE" ]]; then
+      log::error "Deduced markdown file does not exist: $MD_FILE"
+      exit 1
+    fi
   else
-    log::info "Starting processing of markdown files in $FOLDER"
-    while IFS= read -r file; do
-      remove_missing_image_links "$file"
-    done < <(lib::exec find "$FOLDER" -name "*.md" -type f)
-    log::info "Processing completed"
+    log::error "FILE must have .md, .png, or .jpg extension: $INPUT_FILE"
+    exit 1
   fi
+
+  remove_missing_image_links "$MD_FILE"
+  log::info "Processing completed"
 }
 
 main "$@"

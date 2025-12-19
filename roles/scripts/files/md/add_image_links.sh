@@ -6,20 +6,22 @@ SCRIPT_DIR="$(dirname -- "$0")"
 source "$SCRIPT_DIR/../log.sh"
 source "$SCRIPT_DIR/../utils.sh"
 
-FILE=""
+INPUT_FILE=""
+MD_FILE=""
 
 usage() {
   cat << EOF
 Usage: $0 -f FILE
 
-Process the specified markdown FILE and add image links after the first text paragraph for all matching image files (PNG or JPG) that start with the same base name as the file, sorted in chronological order (by modification time, oldest first), if they are not already present.
+Process the specified markdown FILE or image FILE (PNG/JPG), deducing the markdown file from the image file name if an image is provided. Add image links after the first text paragraph for all matching image files (PNG or JPG) that start with the same base name as the markdown file, sorted in chronological order (by modification time, oldest first), if they are not already present.
 
 OPTIONS:
-  -f FILE  Process the specified markdown FILE
+  -f FILE  Process the specified markdown FILE or image FILE
   -h       Show this help message
 
 EXAMPLES:
   $0 -f /path/to/file.md
+  $0 -f /path/to/file.png
   $0 -h
 EOF
 }
@@ -33,7 +35,7 @@ parse_args() {
           usage
           exit 1
         fi
-        FILE="$2"
+        INPUT_FILE="$2"
         shift 2
         ;;
       -h|--help)
@@ -47,17 +49,29 @@ parse_args() {
         ;;
     esac
   done
-  if [[ -z "$FILE" ]]; then
+  if [[ -z "$INPUT_FILE" ]]; then
     log::error "FILE with -f is required"
     usage
     exit 1
   fi
-  if [[ ! -f "$FILE" ]]; then
-    log::error "FILE does not exist or is not a file: $FILE"
+  if [[ ! -f "$INPUT_FILE" ]]; then
+    log::error "Input FILE does not exist or is not a file: $INPUT_FILE"
     exit 1
   fi
-  if [[ "$FILE" != *.md ]]; then
-    log::error "FILE must have .md extension: $FILE"
+  if [[ "$INPUT_FILE" == *.md ]]; then
+    MD_FILE="$INPUT_FILE"
+  elif [[ "$INPUT_FILE" == *.png || "$INPUT_FILE" == *.jpg ]]; then
+    local base
+    base=$(basename "$INPUT_FILE" | sed 's/\_.*$//')
+    local dir
+    dir=$(dirname "$INPUT_FILE")
+    MD_FILE="$dir/$base.md"
+    if [[ ! -f "$MD_FILE" ]]; then
+      log::error "Deduced markdown file does not exist: $MD_FILE"
+      exit 1
+    fi
+  else
+    log::error "FILE must have .md, .png, or .jpg extension: $INPUT_FILE"
     exit 1
   fi
 }
@@ -111,7 +125,7 @@ process_file() {
   if [[ $inserted -eq 0 ]]; then
     echo "" >> "$temp_file"
     for img in "${to_add[@]}"; do
-      echo "![]($img)" >> "$temp_file"
+      echo "![]($img)\n" >> "$temp_file"
     done
   fi
   lib::exec mv "$temp_file" "$file"
@@ -119,8 +133,8 @@ process_file() {
 
 main() {
   parse_args "$@"
-  log::info "Processing file: $FILE"
-  process_file "$FILE"
+  log::info "Processing file: $MD_FILE"
+  process_file "$MD_FILE"
   log::info "Processing completed"
 }
 
