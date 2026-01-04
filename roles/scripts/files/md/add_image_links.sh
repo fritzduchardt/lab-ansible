@@ -80,12 +80,13 @@ process_file() {
   local file="$1"
   local base
   base=$(basename "$file" .md)
+  base="${base// /g}"
   local dir
   dir=$(dirname "$file")
   local images=()
   while IFS= read -r img; do
     images+=("$img")
-  done < <(ls -tr "$dir/$base"*.png "$dir/$base"*.jpg 2>/dev/null)
+  done < <(ls -1 "$dir/$base"*.png "$dir/$base"*.jpg | sort -V)
   if [[ ${#images[@]} -eq 0 ]]; then
     log::info "No matching images found for $file"
     return
@@ -111,7 +112,7 @@ process_file() {
     if [[ $inserted -eq 0 && $found_headline -eq 1 && $found_paragraph -eq 1 && "$line" == "" ]]; then
       echo "" >> "$temp_file"
       for img in "${to_add[@]}"; do
-        echo "![]($img)" >> "$temp_file"
+        echo -e "![]($img)\n" >> "$temp_file"
       done
       inserted=1
     fi
@@ -125,7 +126,7 @@ process_file() {
   if [[ $inserted -eq 0 ]]; then
     echo "" >> "$temp_file"
     for img in "${to_add[@]}"; do
-      echo "![]($img)\n" >> "$temp_file"
+      echo -e "![]($img)\n" >> "$temp_file"
     done
   fi
   lib::exec mv "$temp_file" "$file"
