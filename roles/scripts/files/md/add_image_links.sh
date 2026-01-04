@@ -80,7 +80,7 @@ process_file() {
   local file="$1"
   local base
   base=$(basename "$file" .md)
-  base="${base// /g}"
+  base="${base// /-}"
   local dir
   dir=$(dirname "$file")
   local images=()
