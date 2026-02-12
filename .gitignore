@@ -6,3 +6,5 @@
 
 /.ansible-lint
 /.ansible-password
+
+/venv

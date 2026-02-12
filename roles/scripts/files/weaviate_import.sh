@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -eo pipefail
+set -o pipefail
 
 SCRIPT_DIR="$(dirname -- "$0")"
 source "$SCRIPT_DIR/log.sh"
@@ -9,18 +9,32 @@ usage() {
   echo """Usage: $0 [options]
 
 Options:
-  -f, --file FILE       File to import or delete (required)
+  -f, --file FILE       File to import or delete
+  -i, --input-dir DIR   Directory to import or delete
   -b, --base BASE       Base path to strip from file paths (default: directory of the file)
   -e, --endpoint URL    Weaviate endpoint URL (default: http://localhost:8080)
-  -c, --class NAME      Weaviate class name to operate on (default: ObsidianFile)
+  -c, --class NAME      Weaviate class name to operate on
   -d, --delete          Delete the object matching the file path from Weaviate
   -h, --help            Show this help
 
 Examples:
-  $0 --file ./docs/notes.md --base ./docs --endpoint http://weaviate.local:8080 --class Document
-  $0 -f /data/texts/note.md -b /data -e http://127.0.0.1:8080 -c MyTextClass
-  $0 -f ./docs/old.md --delete -e http://weaviate.local:8080 -c Document
+  $0 --file ./docs/notes.md --base ./home/fritz/ --endpoint http://weaviate.local:8080 --class PatternFile
+  $0 -f /data/texts/note.md -b /home/fritz/ -e http://127.0.0.1:8080 -c PatternFile
+  $0 -f ./docs/old.md --delete -e http://weaviate.local:8080 -c PatternFile
 """
+}
+
+weaviate::import_dir() {
+  local endpoint="$1"
+  local class="$2"
+  local base="$3"
+  local import_dir="$4" file
+
+  for file in $(fd ".*.md" "$import_dir"); do
+    if ! weaviate::import_file "$endpoint" "$class" "$base" "$file"; then
+      log::error "Failed to import $file"
+    fi
+  done
 }
 
 weaviate::import_file() {
@@ -35,6 +49,13 @@ weaviate::import_file() {
   local payload
   local rc
 
+  # we always delete, to avoid double indexation
+  while weaviate::delete_file "$endpoint" "$class" "$base" "$file" \
+    && [[ $? == 0 ]]; do
+    log::info "Deleting file: $file"
+  done
+
+
   log::info "Preparing import for file: $file"
 
   base_abs="$(lib::exec realpath -- "$base")"
@@ -44,8 +65,8 @@ weaviate::import_file() {
   if [[ -n "$base_path" ]] && [[ "$file_abs" == "$base_path"* ]]; then
     rel="${file_abs#$base_path/}"
   else
-    log::error "Base path: $base_path does not match file path: $file_abs"
-    exit 2
+    log::error "Base path: #$base_path# does not match file path: #$file_abs#"
+    return 1
   fi
 
   payload="$(lib::exec jq -Rs --arg class "$class" --arg path "$rel" '{class: $class, properties: {path: $path, content: .}}' <"$file_abs")"
@@ -76,7 +97,7 @@ weaviate::find_object_id() {
 {
   "query": "{
     Get {
-      ObsidianFile(where: {
+      $class(where: {
         path: [\"path\"],
         operator: Equal,
         valueText: \"$rel\"
@@ -146,6 +167,7 @@ main() {
   local endpoint
   local class
   local delete_mode
+  local import_dir
 
   file="${FILE}"
   endpoint="${ENDPOINT:-http://weaviate.weaviate}"
@@ -175,6 +197,10 @@ main() {
         delete_mode="1"
         shift
         ;;
+      -i|--import-dir)
+        import_dir="$2"
+        shift 2
+        ;;
       -h|--help)
         usage
         exit 0
@@ -187,19 +213,9 @@ main() {
     esac
   done
 
-  if [[ -z "$file" ]]; then
-    log::error "No file specified"
+  if [[ -z "$file" && -z "$import_dir" ]]; then
+    log::error "No file or directory specified"
     usage
-    exit 1
-  fi
-
-  if [[ ! "$file" =~ [Pp]rotocol|[Jj]ournal\.md ]]; then
-    log::info "Not processing: $file"
-    exit 0
-  fi
-
-  if [[ "$delete_mode" == "0" && ! -f "$file" ]]; then
-    log::error "File not found: $file"
     exit 1
   fi
 
@@ -207,17 +223,18 @@ main() {
     base="$(lib::exec dirname -- "$file")"
   fi
 
-  # we always delete, to avoid double indexation
-  while weaviate::delete_file "$endpoint" "$class" "$base" "$file" \
-    && [[ $? == 0 ]]; do
-    log::info "Deleting file"
-  done
-
-  if [[ "$delete_mode" == "0" ]]; then
-    weaviate::import_file "$endpoint" "$class" "$base" "$file"
+  # File or Directory mode
+  if [[ -n "$file" ]]; then
+    if [[ "$delete_mode" == "1" ]]; then
+      weaviate::delete_file "$endpoint" "$class" "$base" "$file"
+    else
+      weaviate::import_file "$endpoint" "$class" "$base" "$file"
+    fi
+  else
+    weaviate::import_dir "$endpoint" "$class" "$base" "$import_dir"
   fi
 }
 
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
-  main "$@"
+    main "$@"
 fi
