@@ -12,6 +12,8 @@ defaults
     log global
     mode tcp
     option tcplog
+    # Disable connection reuse to downstream services
+    option http-server-close
     timeout connect 5000
     timeout client 50000
     timeout server 50000
@@ -22,6 +24,8 @@ frontend ft_{{ port }}
     default_backend bk_{{ port }}
 
 backend bk_{{ port }}
+    # Disable persistent connections to downstream server
+    option http-server-close
     server target_{{ port }} {{ haproxy_target_ip }}:{{ port }}
 
 {% endfor %}

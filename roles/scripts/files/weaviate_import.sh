@@ -171,7 +171,7 @@ main() {
 
   file="${FILE}"
   endpoint="${ENDPOINT:-http://weaviate.weaviate}"
-  class="${CLASS:-ObsidianFile}"
+  class="${CLASS:-PatternFile}"
   base="${BASE:-/volumes/syncthing}"
   delete_mode="0"
 

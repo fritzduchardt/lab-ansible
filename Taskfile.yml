@@ -20,6 +20,14 @@ tasks:
         INVENTORY_ARG="--inventory {{.INVENTORY}}"
         ansible-playbook {{.PLAYBOOK}} ${TAG_ARG} ${INVENTORY_ARG} ${ROLE_FILE_ARG}
 
+  ansible:run:haproxy:
+    desc: Run haproxy.yaml playbook with friclu inventory
+    cmds:
+      - task: ansible:run
+        vars:
+          INVENTORY: inventory/ionos.yaml
+          PLAYBOOK: haproxy.yaml
+
   ansible:run:ssh:
     desc: Run ssh.yaml playbook with friclu inventory
     cmds:
