@@ -7,3 +7,5 @@
       tags: wireguard
     - role: wireguard-routing
       tags: wireguard-routing
+    - role: wireguard-routing-revert
+      tags: wireguard-routing-revert

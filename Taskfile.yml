@@ -30,7 +30,7 @@ tasks:
     cmds:
       - task: ansible:run
         vars:
-          INVENTORY: inventory/ionos.yaml
+          INVENTORY: inventory/contabo.yaml
           PLAYBOOK: haproxy.yaml
 
   ansible:run:ssh:

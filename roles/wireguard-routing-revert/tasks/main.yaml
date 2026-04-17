@@ -1,0 +1,54 @@
+---
+- name: Stop and disable wireguard iptables loader service
+  become: true
+  ansible.builtin.systemd:
+    name: wireguard-iptables.service
+    enabled: false
+    state: stopped
+  ignore_errors: true
+
+- name: Flush NAT table PREROUTING chain
+  become: true
+  ansible.builtin.command:
+    cmd: iptables -t nat -F PREROUTING
+  changed_when: true
+  ignore_errors: true
+
+- name: Flush NAT table POSTROUTING chain
+  become: true
+  ansible.builtin.command:
+    cmd: iptables -t nat -F POSTROUTING
+  changed_when: true
+  ignore_errors: true
+
+- name: Flush filter table FORWARD chain
+  become: true
+  ansible.builtin.command:
+    cmd: iptables -t filter -F FORWARD
+  changed_when: true
+  ignore_errors: true
+
+- name: Remove wireguard-iptables.service systemd unit file
+  become: true
+  ansible.builtin.file:
+    path: /etc/systemd/system/wireguard-iptables.service
+    state: absent
+  notify:
+    - Reload systemd daemon
+
+- name: Remove iptables rules file for wireguard forwarding
+  become: true
+  ansible.builtin.file:
+    path: /etc/iptables/iptables-wireguard.rules
+    state: absent
+
+- name: Disable ip forwarding
+  become: true
+  ansible.posix.sysctl:
+    name: net.ipv4.ip_forward
+    value: '0'
+    state: present
+    reload: yes
+
+- name: Flush handlers to reload systemd daemon immediately
+  ansible.builtin.meta: flush_handlers
