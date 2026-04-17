@@ -62,6 +62,12 @@ tasks:
     cmds:
       - task: ansible:run
         vars:
+          INVENTORY: inventory/friclu.yaml
+          PLAYBOOK: wireguard.yaml
+          TAG: wireguard
+          ANSIBLE_BECOME_METHOD: sudo
+      - task: ansible:run
+        vars:
           INVENTORY: inventory/contabo.yaml
           PLAYBOOK: wireguard.yaml
           TAG: wireguard
