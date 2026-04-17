@@ -1,5 +1,5 @@
 - name: Install packages for haproxy
-  hosts: "all"
+  hosts: "contabo"
   roles:
     - role: haproxy
       tags: haproxy

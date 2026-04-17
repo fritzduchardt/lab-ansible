@@ -1,5 +1,7 @@
 - name: Install packages for wireguard
-  hosts: "all"
+  hosts:
+    - "contabo"
+    - "localhost"
   roles:
     - role: wireguard
       tags: wireguard

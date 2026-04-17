@@ -5,6 +5,7 @@ tasks:
     desc: Run Ansible playbook with dynamic tag, inventory and role file
     vars:
       TAG: "{{.TAG | default .tag | default \"\"}}"
+      LIMIT: "{{.LIMIT | default .limit | default \"\"}}"
       INVENTORY: "{{.INVENTORY | default .inventory | default \"\"}}"
       PLAYBOOK: "{{.PLAYBOOK | default .playbook | default \"site.yml\"}}"
     preconditions:
@@ -17,8 +18,12 @@ tasks:
         if [ -n "{{.TAG}}" ]; then
           TAG_ARG="--tags {{.TAG}}"
         fi
+        LIMIT_ARG=""
+        if [ -n "{{.LIMIT}}" ]; then
+          LIMIT_ARG="--limits {{.LIMIT}}"
+        fi
         INVENTORY_ARG="--inventory {{.INVENTORY}}"
-        ansible-playbook {{.PLAYBOOK}} ${TAG_ARG} ${INVENTORY_ARG} ${ROLE_FILE_ARG}
+        ansible-playbook {{.PLAYBOOK}} ${TAG_ARG} ${LIMIT_ARG} ${INVENTORY_ARG} ${ROLE_FILE_ARG}
 
   ansible:run:haproxy:
     desc: Run haproxy.yaml playbook with friclu inventory
@@ -51,3 +56,30 @@ tasks:
         vars:
           INVENTORY: inventory/friclu.yaml
           PLAYBOOK: scripts.yaml
+
+  ansible:run:wireguard:
+    desc: Run wireguard.yaml client config
+    cmds:
+      - task: ansible:run
+        vars:
+          INVENTORY: inventory/contabo.yaml
+          PLAYBOOK: wireguard.yaml
+          TAG: wireguard
+          ANSIBLE_BECOME_METHOD: sudo
+      - task: ansible:run
+        vars:
+          INVENTORY: inventory/localhost.yaml
+          PLAYBOOK: wireguard.yaml
+          TAG: wireguard
+          ANSIBLE_BECOME_METHOD: sudo
+
+  ansible:run:wireguard-routing:
+    desc: Run wireguard.yaml client config
+    cmds:
+      - task: ansible:run
+        vars:
+          INVENTORY: inventory/friclu.yaml
+          PLAYBOOK: wireguard.yaml
+          TAG: wireguard-routing
+          ANSIBLE_BECOME_METHOD: sudo
+          LIMIT: friclu-1

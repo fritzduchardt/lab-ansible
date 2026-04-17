@@ -98,9 +98,9 @@ all:
             61653465373530383632
       wg_address: 10.7.0.2/32
       peers:
-        - pub_key: O4LXdtqmhhQ5L8/WWt9ag70LKgQDr1bXob+teWQW1lE=
+        - pub_key: NyFeQtA8l7c0Y2mkyHH0+VjjxtV5Fmku4cNpKLzRwH0=
           allowed_ips: 10.7.0.0/24
-          endpoint: 212.227.63.239
+          endpoint: 83.171.248.219
     friclu-2:
 #      ansible_host: 192.168.0.23
       ansible_host: 10.7.0.3
@@ -108,9 +108,9 @@ all:
       ansible_ssh_private_key_file: /root/.ssh/id_rsa
       wg_address: 10.7.0.3/32
       peers:
-        - pub_key: O4LXdtqmhhQ5L8/WWt9ag70LKgQDr1bXob+teWQW1lE=
+        - pub_key: NyFeQtA8l7c0Y2mkyHH0+VjjxtV5Fmku4cNpKLzRwH0=
           allowed_ips: 10.7.0.0/24
-          endpoint: 212.227.63.239
+          endpoint: 83.171.248.219
     friclu-3:
 #      ansible_host: 192.168.0.19
       ansible_host: 10.7.0.6
@@ -118,9 +118,9 @@ all:
       ansible_ssh_private_key_file: /root/.ssh/id_rsa
       wg_address: 10.7.0.6/32
       peers:
-        - pub_key: O4LXdtqmhhQ5L8/WWt9ag70LKgQDr1bXob+teWQW1lE=
+        - pub_key: NyFeQtA8l7c0Y2mkyHH0+VjjxtV5Fmku4cNpKLzRwH0=
           allowed_ips: 10.7.0.0/24
-          endpoint: 212.227.63.239
+          endpoint: 83.171.248.219
   vars:
     ansible_ssh_common_args: "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
 

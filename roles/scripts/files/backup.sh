@@ -147,7 +147,16 @@ perform_restic_housekeeping() {
 
     log::info "Starting restic housekeeping"
 
-    lib::exec /usr/local/bin/restic -r "s3:https://$url/$bucket_name" forget --keep-daily 7 --keep-monthly 1 --keep-yearly 1 --prune
+    # --keep-weekly 4 retains one snapshot per week for the last 4 weeks,
+    # ensuring backups older than 7 days are preserved rather than pruned after the daily window closes.
+    # Previously only --keep-daily 7 was set, which caused restic to discard any snapshot
+    # not falling within the last 7 daily slots, meaning backups older than a week were deleted.
+    lib::exec /usr/local/bin/restic -r "s3:https://$url/$bucket_name" forget \
+        --keep-daily 7 \
+        --keep-weekly 4 \
+        --keep-monthly 12 \
+        --keep-yearly 3 \
+        --prune
     local housekeeping_result=$?
 
     if [[ $housekeeping_result -ne 0 ]]; then
