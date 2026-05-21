@@ -13,3 +13,5 @@ all:
           allowed_ips: 10.7.0.6/32 # friclu 3
         - pub_key: BFOf0l8bfWrU/MScLvHah0YNcMLL7aJ1jiSe80FnbRM=
           allowed_ips: 10.7.0.2/32 # friclu 1
+        - pub_key: QzCXSTtwUz14Uv4T9wAL0pQvDHypa/OqujlKrB3kUW8=
+          allowed_ips: 10.7.0.10/32 # mobile

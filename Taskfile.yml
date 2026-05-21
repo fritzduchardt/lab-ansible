@@ -57,6 +57,14 @@ tasks:
           INVENTORY: inventory/friclu.yaml
           PLAYBOOK: scripts.yaml
 
+  ansible:run:pandoc:
+    desc: Run ssh.yaml playbook with friclu inventory
+    cmds:
+      - task: ansible:run
+        vars:
+          INVENTORY: inventory/friclu.yaml
+          PLAYBOOK: pandoc.yaml
+
   ansible:run:wireguard:
     desc: Run wireguard.yaml client config
     cmds:

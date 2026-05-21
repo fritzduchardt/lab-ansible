@@ -107,7 +107,7 @@ compress_and_cleanup_postgres_backup() {
 perform_restic_backup() {
     local url="$1"
     local backup_dir="$2"
-    local bucket_name="friclu-immich"
+    local bucket_name="friclu-backup"
 
     log::info "Starting restic backup"
 
