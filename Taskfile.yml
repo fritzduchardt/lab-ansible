@@ -20,7 +20,7 @@ tasks:
         fi
         LIMIT_ARG=""
         if [ -n "{{.LIMIT}}" ]; then
-          LIMIT_ARG="--limits {{.LIMIT}}"
+          LIMIT_ARG="-l {{.LIMIT}}"
         fi
         INVENTORY_ARG="--inventory {{.INVENTORY}}"
         ansible-playbook {{.PLAYBOOK}} ${TAG_ARG} ${LIMIT_ARG} ${INVENTORY_ARG} ${ROLE_FILE_ARG}
@@ -97,3 +97,14 @@ tasks:
           TAG: wg-cluster-routing
           ANSIBLE_BECOME_METHOD: sudo
           LIMIT: friclu-1
+
+  ansible:run:wg-gateway-routing:
+    desc: Run gateway routing config
+    cmds:
+      - task: ansible:run
+        vars:
+          INVENTORY: inventory/contabo.yaml
+          PLAYBOOK: wireguard.yaml
+          TAG: wg-gateway-routing
+          ANSIBLE_BECOME_METHOD: sudo
+          LIMIT: contabo

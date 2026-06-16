@@ -6,5 +6,7 @@
       tags: wireguard
     - role: wg-cluster-routing
       tags: wg-cluster-routing
+    - role: wg-gateway-routing
+      tags: wg-gateway-routing
     - role: wg-cluster-routing-revert
       tags: wg-cluster-routing-revert

@@ -26,6 +26,7 @@
     group: root
   notify:
     - Reload systemd daemon
+    - Apply iptables rules
 
 - name: Deploy systemd unit to load iptables rules at boot
   become: true
@@ -38,15 +39,13 @@
   notify:
     - Reload systemd daemon
 
+# daemon_reload must complete before enable+start; flush here to enforce order
+- name: Flush handlers before enabling service
+  ansible.builtin.meta: flush_handlers
+
 - name: Enable and start wireguard iptables loader service
   become: true
   ansible.builtin.systemd:
     name: wireguard-iptables.service
     enabled: true
     state: started
-
-- name: Apply iptables rules immediately
-  become: true
-  ansible.builtin.command:
-    cmd: iptables-restore /etc/iptables/iptables-wireguard.rules
-  changed_when: true

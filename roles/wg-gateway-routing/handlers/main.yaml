@@ -4,3 +4,9 @@
   ansible.builtin.systemd:
     daemon_reload: yes
 
+# Handler to apply iptables rules immediately without a full service restart
+- name: Apply iptables rules
+  become: true
+  ansible.builtin.command:
+    cmd: iptables-restore /etc/iptables/iptables-wireguard.rules
+  changed_when: true
