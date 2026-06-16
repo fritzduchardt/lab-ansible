@@ -4,7 +4,7 @@
   roles:
     - role: wireguard
       tags: wireguard
-    - role: wireguard-routing
-      tags: wireguard-routing
-    - role: wireguard-routing-revert
-      tags: wireguard-routing-revert
+    - role: wg-cluster-routing
+      tags: wg-cluster-routing
+    - role: wg-cluster-routing-revert
+      tags: wg-cluster-routing-revert

@@ -1,0 +1,5 @@
+-t nat -A POSTROUTING -o {{ ethernet_iface }} -j MASQUERADE
+-A FORWARD -i {{ wireguard_iface }} -o {{ ethernet_iface }} -j ACCEPT
+-A FORWARD -i {{ ethernet_iface }} -o {{ wireguard_iface }} -m state --state RELATED,ESTABLISHED -j ACCEPT
+
+COMMIT

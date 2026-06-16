@@ -87,13 +87,13 @@ tasks:
           TAG: wireguard
           ANSIBLE_BECOME_METHOD: sudo
 
-  ansible:run:wireguard-routing:
+  ansible:run:wg-cluster-routing:
     desc: Run wireguard.yaml client config
     cmds:
       - task: ansible:run
         vars:
           INVENTORY: inventory/friclu.yaml
           PLAYBOOK: wireguard.yaml
-          TAG: wireguard-routing
+          TAG: wg-cluster-routing
           ANSIBLE_BECOME_METHOD: sudo
           LIMIT: friclu-1
