@@ -8,5 +8,5 @@
       tags: wg-cluster-routing
     - role: wg-gateway-routing
       tags: wg-gateway-routing
-    - role: wg-cluster-routing-revert
-      tags: wg-cluster-routing-revert
+    - role: wg-routing-revert
+      tags: wg-routing-revert

@@ -107,14 +107,14 @@ all:
           allowed_ips: 10.7.0.0/24
           endpoint: 83.171.248.219
     friclu-3:
-      ansible_host: 192.168.0.19
-#      ansible_host: 10.7.0.6
+#      ansible_host: 192.168.0.19
+      ansible_host: 10.7.0.6
       ansible_user: root
       ansible_ssh_private_key_file: /root/.ssh/id_rsa
       wg_address: 10.7.0.6/32
       peers:
         - pub_key: NyFeQtA8l7c0Y2mkyHH0+VjjxtV5Fmku4cNpKLzRwH0=
-          allowed_ips: 10.7.0.0/24
+          allowed_ips: 10.7.0.0/24, 172.64.148.163/32, 104.18.39.93/32
           endpoint: 83.171.248.219
   vars:
     ansible_ssh_common_args: "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
