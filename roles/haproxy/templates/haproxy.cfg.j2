@@ -14,9 +14,12 @@ defaults
     option tcplog
     # Disable connection reuse to downstream services
     option http-server-close
+    # Maximum time to wait for a connection attempt to a downstream server (in milliseconds)
     timeout connect 5000
-    timeout client 50000
-    timeout server 50000
+    # Maximum inactivity time on the client side (in milliseconds)
+    timeout client 300000
+    # Maximum inactivity time on the server side (in milliseconds)
+    timeout server 300000
 
 {% for port in haproxy_ports %}
 frontend ft_{{ port }}
